@@ -245,17 +245,8 @@
   .btn-primary:hover { background: #7c22d4; transform: translateY(-1px); }
   .btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--text2); }
   .btn-ghost:hover { border-color: var(--accent2); color: var(--accent2); }
-  .hero-cover {
-    width: 120px; height: 170px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 3.5rem;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1;
-    background: linear-gradient(160deg, #2d1b69, #1e3a5f);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-  }
+  .hero-cover { width: 130px; height: 185px; border-radius: 12px; overflow: hidden; flex-shrink: 0; position: relative; z-index: 1; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+  .hero-cover img { width: 100%; height: 100%; object-fit: cover; }
 
   /* SECTION */
   .section { margin-bottom: 2.5rem; }
@@ -314,10 +305,12 @@
   }
   .book-cover {
     width: 100%; height: var(--card-h);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 3.2rem;
     position: relative;
+    overflow: hidden;
   }
+  .book-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; display: block; }
+  .book-card:hover .book-cover img { transform: scale(1.06); }
+  .book-cover-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.6) 100%); pointer-events: none; }
   .cover-badge {
     position: absolute; top: 7px; left: 7px;
     font-size: 0.6rem; font-weight: 700;
@@ -380,100 +373,283 @@
   .stat-num { font-size: 1.6rem; font-weight: 800; color: var(--accent2); }
   .stat-label { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
 
-  /* ==================== READER ==================== */
+  /* ==================== READER ====================*/
+  @keyframes readerFadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+  @keyframes chapterReveal { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:none; } }
+  @keyframes bgShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+  @keyframes floatPetal { 0% { transform:translateY(0) rotate(0deg) translateX(0); opacity:.18; }
+    33% { transform:translateY(30vh) rotate(120deg) translateX(25px); opacity:.1; }
+    66% { transform:translateY(65vh) rotate(240deg) translateX(-15px); opacity:.08; }
+    100% { transform:translateY(110vh) rotate(360deg) translateX(10px); opacity:0; } }
+  @keyframes glowPulse { 0%,100% { opacity:.5; } 50% { opacity:1; } }
+  @keyframes textReveal { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+  @keyframes illustReveal { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:scale(1); } }
+  @keyframes shimmer { from { background-position: -200% center; } to { background-position: 200% center; } }
+
   #reader-overlay {
-    position: fixed; inset: 0;
-    background: #0a0814;
-    z-index: 200;
-    display: none;
-    flex-direction: column;
+    position: fixed; inset: 0; z-index: 200; display: none; flex-direction: column;
+    background: #080614;
+    overflow: hidden;
   }
   #reader-overlay.open { display: flex; }
+
+  /* Animated background */
+  .reader-bg {
+    position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .reader-bg-gradient {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 20% 80%, rgba(147,51,234,.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(232,121,249,.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(99,51,180,.06) 0%, transparent 70%);
+    animation: bgShift 20s ease-in-out infinite;
+    background-size: 200% 200%;
+  }
+  .reader-petal { position: absolute; pointer-events: none; animation: floatPetal linear infinite; }
+  .reader-petal svg { display: block; }
+
+  /* TOPBAR */
   .reader-topbar {
+    position: relative; z-index: 10;
     display: flex; align-items: center; gap: 1rem;
-    padding: 0.8rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
+    padding: .75rem 1.5rem;
+    background: rgba(8,6,20,.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(147,51,234,.2);
+    box-shadow: 0 1px 30px rgba(147,51,234,.1);
+    animation: readerFadeIn .5s ease both;
   }
-  .reader-title { flex: 1; font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: var(--text2); }
-  .reader-controls { display: flex; align-items: center; gap: 8px; }
+  .reader-title {
+    flex: 1; font-family: 'Noto Serif JP', serif; font-size: .88rem; color: #c084fc;
+    letter-spacing: .04em;
+  }
+  .reader-controls { display: flex; align-items: center; gap: 6px; }
   .reader-btn {
-    background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 8px; color: var(--text2);
-    padding: 0.35rem 0.8rem; font-size: 0.78rem;
-    cursor: pointer; font-family: inherit; transition: all 0.2s;
+    background: rgba(147,51,234,.12); border: 1px solid rgba(147,51,234,.25);
+    border-radius: 8px; color: #b8a8d8; padding: .35rem .8rem; font-size: .78rem;
+    cursor: pointer; font-family: inherit; transition: all .2s;
   }
-  .reader-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .reader-btn:hover { background: rgba(147,51,234,.25); border-color: #c084fc; color: #e8e0f8; }
   .reader-chapter-select {
-    background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 8px; color: var(--text2);
-    padding: 0.35rem 0.6rem; font-size: 0.78rem;
+    background: rgba(147,51,234,.1); border: 1px solid rgba(147,51,234,.25);
+    border-radius: 8px; color: #b8a8d8; padding: .35rem .6rem; font-size: .78rem;
     cursor: pointer; font-family: inherit;
   }
+
+  /* BODY */
   .reader-body {
-    flex: 1; overflow-y: auto;
-    padding: 3rem 0;
+    flex: 1; overflow-y: auto; position: relative; z-index: 1;
+    scroll-behavior: smooth;
+  }
+  .reader-body::-webkit-scrollbar { width: 4px; }
+  .reader-body::-webkit-scrollbar-track { background: transparent; }
+  .reader-body::-webkit-scrollbar-thumb { background: rgba(147,51,234,.3); border-radius: 2px; }
+
+  /* CHAPTER HEADER */
+  .chapter-header {
+    position: relative; width: 100%; min-height: 380px; overflow: hidden;
+    display: flex; align-items: flex-end;
+    animation: illustReveal .8s ease both;
+  }
+  .chapter-header-img {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    transition: transform 8s ease;
+  }
+  .chapter-header-img.parallax-active { transform: scale(1.06) translateY(-2%); }
+  .chapter-header-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(8,6,20,.1) 0%,
+      rgba(8,6,20,.3) 40%,
+      rgba(8,6,20,.85) 75%,
+      rgba(8,6,20,1) 100%
+    );
+  }
+  .chapter-header-content {
+    position: relative; z-index: 2;
+    width: 100%; padding: 2rem 3rem 2.5rem;
+    max-width: 720px; margin: 0 auto;
+  }
+  .chapter-book-label {
+    font-size: .68rem; color: #c084fc; letter-spacing: .2em;
+    text-transform: uppercase; margin-bottom: .5rem;
+    opacity: 0; animation: textReveal .6s ease .3s both;
+  }
+  .chapter-title-main {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 2rem; color: #fff; line-height: 1.2;
+    text-shadow: 0 4px 20px rgba(0,0,0,.6);
+    opacity: 0; animation: textReveal .7s ease .5s both;
+  }
+  .chapter-divider {
+    width: 60px; height: 2px;
+    background: linear-gradient(90deg, #9333ea, #e879f9);
+    margin: 1rem 0; border-radius: 1px;
+    opacity: 0; animation: textReveal .5s ease .7s both;
+  }
+
+  /* CONTENT */
+  .reader-content-wrap {
+    max-width: 720px; margin: 0 auto;
+    padding: 2.5rem 3rem 6rem;
   }
   .reader-content {
-    max-width: 680px; margin: 0 auto; padding: 0 2rem;
-    font-size: var(--reader-font-size, 1rem);
-    line-height: var(--reader-line-height, 1.9);
-    color: var(--reader-text-color, #ddd8ee);
-  }
-  .reader-content h3 {
+    font-size: 1.05rem;
+    line-height: 1.95;
+    color: #d8d0ec;
     font-family: 'Noto Serif JP', serif;
-    font-size: 1.4em; color: var(--accent2);
-    margin-bottom: 1.5rem; text-align: center;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border);
+    font-weight: 300;
+    letter-spacing: .01em;
   }
-  .reader-content p { margin-bottom: 1.2em; text-indent: 2em; }
-  .reader-content .speech { text-indent: 0; color: #e8e0f5; font-style: italic; }
+  .reader-content p {
+    margin-bottom: 1.4em;
+    text-indent: 2.5em;
+    opacity: 0;
+    animation: textReveal .5s ease both;
+  }
+  .reader-content .speech {
+    text-indent: 0;
+    color: #e8d8ff;
+    font-style: normal;
+    padding-left: 1.2em;
+    border-left: 2px solid rgba(192,132,252,.4);
+    margin-left: .5em;
+    font-size: 1.02em;
+  }
   .reader-content .scene-break {
-    text-align: center; color: var(--text3);
-    margin: 2rem 0; font-size: 1.2rem; letter-spacing: 0.5em;
+    text-align: center; color: rgba(192,132,252,.5);
+    margin: 2.5rem 0; letter-spacing: .8em;
+    font-size: .9rem; font-family: 'Nunito', sans-serif;
   }
+
+  /* INLINE ILLUSTRATION */
+  .chapter-illustration {
+    width: 100%; border-radius: 14px; overflow: hidden;
+    margin: 2.5rem 0;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    animation: illustReveal .8s ease both;
+  }
+  .chapter-illustration img {
+    width: 100%; display: block;
+    max-height: 340px; object-fit: cover;
+  }
+  .chapter-illustration-caption {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: .8rem 1.2rem;
+    background: linear-gradient(to top, rgba(8,6,20,.9), transparent);
+    font-size: .72rem; color: rgba(192,132,252,.7);
+    font-family: 'Nunito', sans-serif; font-style: italic;
+    letter-spacing: .05em;
+  }
+
+  /* ATMOSPHERE QUOTE */
+  .atmo-quote {
+    margin: 2rem 0;
+    padding: 1.5rem 2rem;
+    background: rgba(147,51,234,.06);
+    border: 1px solid rgba(147,51,234,.15);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .atmo-quote::before {
+    content: '"';
+    position: absolute; top: -.5rem; left: 1rem;
+    font-size: 5rem; color: rgba(192,132,252,.12);
+    font-family: 'Noto Serif JP', serif;
+    line-height: 1;
+  }
+  .atmo-quote p {
+    text-indent: 0 !important;
+    font-style: italic; color: #c8b8e8;
+    font-size: .95rem; line-height: 1.8;
+    position: relative; z-index: 1;
+  }
+
+  /* CHAPTER END CARD */
+  .chapter-end {
+    margin: 3rem 0 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(147,51,234,.08), rgba(232,121,249,.05));
+    border: 1px solid rgba(147,51,234,.2);
+    border-radius: 16px;
+    text-align: center;
+  }
+  .chapter-end-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem; color: #c084fc; margin-bottom: .5rem;
+  }
+  .chapter-end-text { font-size: .8rem; color: #7a6a9a; margin-bottom: 1.2rem; }
+  .chapter-end-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .chapter-end-btn {
+    padding: .55rem 1.4rem; border-radius: 999px;
+    font-size: .8rem; font-family: inherit; cursor: pointer; transition: all .2s;
+  }
+  .chapter-end-btn.primary {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border: none; color: #fff;
+    box-shadow: 0 4px 20px rgba(124,58,237,.35);
+  }
+  .chapter-end-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(124,58,237,.5); }
+  .chapter-end-btn.ghost {
+    background: transparent; border: 1px solid rgba(147,51,234,.3); color: #b8a8d8;
+  }
+  .chapter-end-btn.ghost:hover { border-color: #c084fc; color: #e8e0f8; }
+
+  /* BOTTOM BAR */
   .reader-bottombar {
-    padding: 0.7rem 1.5rem;
-    border-top: 1px solid var(--border);
-    background: var(--bg2);
+    position: relative; z-index: 10;
+    padding: .65rem 1.5rem;
+    background: rgba(8,6,20,.85);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(147,51,234,.15);
     display: flex; align-items: center; gap: 1rem;
+    animation: readerFadeIn .5s ease .2s both;
   }
   .reader-progress-wrap { flex: 1; }
-  .reader-progress-bar { height: 4px; background: var(--bg4); border-radius: 2px; cursor: pointer; }
-  .reader-progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
-  .reader-page-info { font-size: 0.75rem; color: var(--text3); white-space: nowrap; }
+  .reader-progress-bar {
+    height: 3px; background: rgba(255,255,255,.08); border-radius: 2px; cursor: pointer;
+    position: relative; overflow: hidden;
+  }
+  .reader-progress-bar::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(192,132,252,.15), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease infinite;
+  }
+  .reader-progress-fill {
+    height: 100%; background: linear-gradient(90deg, #7c3aed, #e879f9);
+    border-radius: 2px; transition: width .3s;
+    position: relative; z-index: 1;
+  }
+  .reader-page-info { font-size: .72rem; color: #7a6a9a; white-space: nowrap; }
 
   /* READER SETTINGS PANEL */
   .reader-settings {
-    position: absolute; top: 3.5rem; right: 1.5rem;
-    background: var(--bg2);
-    border: 1px solid var(--border2);
-    border-radius: var(--radius);
-    padding: 1.2rem;
-    width: 260px;
-    display: none;
-    z-index: 10;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    position: absolute; top: 3.2rem; right: 1.5rem;
+    background: rgba(18,15,36,.97); backdrop-filter: blur(20px);
+    border: 1px solid rgba(147,51,234,.3); border-radius: 14px;
+    padding: 1.2rem; width: 260px; display: none; z-index: 20;
+    box-shadow: 0 16px 40px rgba(0,0,0,.6);
   }
-  .reader-settings.open { display: block; }
-  .rs-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-  .rs-label { font-size: 0.8rem; color: var(--text2); }
-  .rs-btns { display: flex; gap: 5px; }
+  .reader-settings.open { display: block; animation: readerFadeIn .2s ease; }
+  .rs-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: .9rem; }
+  .rs-label { font-size: .78rem; color: #b8a8d8; }
+  .rs-btns { display: flex; gap: 4px; }
   .rs-btn {
-    background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 6px; color: var(--text2);
-    padding: 0.25rem 0.6rem; font-size: 0.75rem;
-    cursor: pointer; font-family: inherit; transition: all 0.15s;
+    background: rgba(147,51,234,.1); border: 1px solid rgba(147,51,234,.2);
+    border-radius: 6px; color: #b8a8d8; padding: .25rem .6rem; font-size: .73rem;
+    cursor: pointer; font-family: inherit; transition: all .15s;
   }
-  .rs-btn:hover { border-color: var(--accent2); color: var(--accent2); }
-  .rs-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .rs-btn:hover { border-color: #c084fc; color: #e8e0f8; }
+  .rs-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
   .rs-themes { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
-  .rs-theme {
-    border-radius: 8px; height: 32px; cursor: pointer;
-    border: 2px solid transparent; transition: border-color 0.2s;
-  }
-  .rs-theme.active { border-color: var(--accent2); }
+  .rs-theme { border-radius: 8px; height: 32px; cursor: pointer; border: 2px solid transparent; transition: border-color .2s; }
+  .rs-theme.active { border-color: #c084fc; }
+
 
   /* ==================== MODAL ==================== */
   .modal-bg {
@@ -495,12 +671,10 @@
     animation: modalIn 0.25s ease;
   }
   @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: none; } }
-  .modal-cover-strip {
-    height: 120px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 4rem;
-    position: relative;
-  }
+  .modal-cover-strip { height: 200px; position: relative; overflow: hidden; }
+  .modal-cover-strip img { width: 100%; height: 100%; object-fit: cover; }
+  .modal-cover-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(18,15,36,0.95) 100%); }
+  .modal-cover-title { position: absolute; bottom: 1rem; left: 1.5rem; right: 2.5rem; font-family: 'Noto Serif JP', serif; font-size: 1.3rem; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
   .modal-close {
     position: absolute; top: 12px; right: 14px;
     background: rgba(0,0,0,0.4); border: none;
@@ -564,11 +738,8 @@
     cursor: pointer;
   }
   .bookmark-card:hover { border-color: var(--border2); }
-  .bookmark-cover {
-    width: 60px; height: 80px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.8rem; flex-shrink: 0;
-  }
+  .bookmark-cover { width: 60px; height: 80px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+  .bookmark-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .bookmark-info { flex: 1; min-width: 0; }
   .bookmark-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.2rem; }
   .bookmark-meta { font-size: 0.7rem; color: var(--text3); margin-bottom: 0.5rem; }
@@ -588,7 +759,8 @@
     cursor: pointer; transition: border-color 0.2s;
   }
   .history-item:hover { border-color: var(--border2); }
-  .history-emoji { font-size: 1.5rem; width: 40px; text-align: center; flex-shrink: 0; }
+  .history-thumb { width: 42px; height: 54px; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+  .history-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .history-text { flex: 1; }
   .history-title { font-size: 0.85rem; font-weight: 600; }
   .history-sub { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
@@ -659,7 +831,8 @@
     margin-bottom: 0.7rem;
   }
   .search-result-item:hover { border-color: var(--border2); background: var(--bg3); }
-  .search-result-emoji { font-size: 2rem; width: 50px; text-align: center; flex-shrink: 0; }
+  .search-result-thumb { width: 50px; height: 65px; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+  .search-result-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .search-result-info { flex: 1; }
   .search-result-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.2rem; }
   .search-result-meta { font-size: 0.7rem; color: var(--text3); }
@@ -695,11 +868,98 @@
     .stats-grid { grid-template-columns: repeat(2,1fr); }
     .hero { flex-direction: column; }
   }
+
+  /* ==================== SPLASH SCREEN ==================== */
+  @keyframes splashFadeOut { to { opacity: 0; pointer-events: none; } }
+  @keyframes splashLogoIn { from { opacity:0; transform: scale(.7) translateY(20px); } to { opacity:1; transform: none; } }
+  @keyframes splashPetalIn { from { opacity:0; transform: translateY(40px) rotate(-20deg); } to { opacity:1; transform: none; } }
+  @keyframes splashTextIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: none; } }
+  @keyframes splashBarFill { from { width: 0; } to { width: 100%; } }
+  @keyframes pageSlideIn { from { opacity:0; transform: translateY(18px); } to { opacity:1; transform: none; } }
+
+  #splash {
+    position: fixed; inset: 0; z-index: 1000;
+    background: #080614;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0;
+    overflow: hidden;
+  }
+  #splash.hiding {
+    animation: splashFadeOut .6s ease .1s forwards;
+  }
+  .splash-petals {
+    position: absolute; inset: 0; pointer-events: none;
+  }
+  .splash-petal {
+    position: absolute;
+    animation: floatPetal linear infinite;
+  }
+  .splash-logo-wrap {
+    text-align: center; position: relative; z-index: 2;
+    animation: splashLogoIn .8s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .splash-sakura {
+    font-size: 4.5rem; margin-bottom: 1rem; display: block;
+    animation: splashPetalIn .7s cubic-bezier(.34,1.56,.64,1) .15s both;
+    filter: drop-shadow(0 0 30px rgba(232,121,249,.4));
+  }
+  .splash-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 2.2rem; font-weight: 700;
+    background: linear-gradient(135deg, #c084fc, #e879f9, #a78bca);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: splashTextIn .6s ease .35s both;
+    letter-spacing: .06em;
+  }
+  .splash-subtitle {
+    font-size: .78rem; color: #7a6a9a; margin-top: .5rem; letter-spacing: .2em;
+    text-transform: uppercase;
+    animation: splashTextIn .6s ease .5s both;
+  }
+  .splash-bar-wrap {
+    width: 180px; margin-top: 2.5rem; position: relative; z-index: 2;
+    animation: splashTextIn .5s ease .6s both;
+  }
+  .splash-bar-track {
+    height: 2px; background: rgba(255,255,255,.08); border-radius: 1px; overflow: hidden;
+  }
+  .splash-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #7c3aed, #e879f9);
+    border-radius: 1px;
+    animation: splashBarFill 1.4s cubic-bezier(.4,0,.2,1) .7s both;
+  }
+  .splash-hint {
+    font-size: .68rem; color: #4a3d6a; margin-top: .8rem; text-align: center;
+    animation: splashTextIn .5s ease .8s both;
+  }
+
+  /* Page load animation */
+  #main { animation: pageSlideIn .6s ease .1s both; }
+
+
 </style>
 </head>
 <body>
 
 <!-- Floating petals -->
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <div class="splash-petals" id="splashPetals"></div>
+  <div class="splash-logo-wrap">
+    <span class="splash-sakura">🌸</span>
+    <div class="splash-title">桜 読書館</div>
+    <div class="splash-subtitle">Сакура Библиотека</div>
+    <div class="splash-bar-wrap">
+      <div class="splash-bar-track"><div class="splash-bar-fill"></div></div>
+      <div class="splash-hint">Загружаем книги...</div>
+    </div>
+  </div>
+</div>
+
 <div class="petal-bg" id="petalBg"></div>
 
 <!-- Sidebar -->
@@ -785,7 +1045,9 @@
             <button class="btn btn-ghost" onclick="toggleBookmark(0)">🔖 В закладки</button>
           </div>
         </div>
-        <div class="hero-cover" style="background:linear-gradient(135deg,#2d1b69,#1e3a5f)">🌸</div>
+        <div class="hero-cover" style="width:130px;height:185px;border-radius:12px;overflow:hidden;flex-shrink:0;box-shadow:0 20px 40px rgba(0,0,0,0.5);position:relative;z-index:1">
+          <img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=260&h=370&fit=crop&auto=format" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.background='linear-gradient(135deg,#2d1b69,#1e3a5f)';this.remove()">
+        </div>
       </div>
 
       <div class="stats-grid">
@@ -985,7 +1247,6 @@
       <button class="modal-close" onclick="closeModalDirect()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="modal-title" id="modalTitle"></div>
       <div class="modal-author" id="modalAuthor"></div>
       <div class="modal-stats" id="modalStats"></div>
       <div class="modal-divider"></div>
@@ -1004,64 +1265,102 @@
 
 <!-- Reader Overlay -->
 <div id="reader-overlay">
+  <!-- Animated background -->
+  <div class="reader-bg">
+    <div class="reader-bg-gradient"></div>
+    <div id="readerPetals"></div>
+  </div>
+
+  <!-- Topbar -->
   <div class="reader-topbar">
     <button class="reader-btn" onclick="closeReader()">← Назад</button>
     <div class="reader-title" id="readerTitle">Название книги</div>
     <div class="reader-controls">
       <select class="reader-chapter-select" id="readerChapterSelect" onchange="goToChapter(this.value)"></select>
-      <button class="reader-btn" onclick="prevChapter()">‹ Назад</button>
-      <button class="reader-btn" onclick="nextChapter()">Вперёд ›</button>
+      <button class="reader-btn" onclick="prevChapter()">‹</button>
+      <button class="reader-btn" onclick="nextChapter()">›</button>
       <button class="reader-btn" onclick="toggleReaderSettings()">⚙️</button>
       <button class="reader-btn" id="readerBkmBtn" onclick="toggleBookmarkReader()">🔖</button>
     </div>
     <div class="reader-settings" id="readerSettings">
-      <div class="rs-row">
-        <span class="rs-label">Размер шрифта</span>
-        <div class="rs-btns">
-          <button class="rs-btn" onclick="setFontSize(14)">А–</button>
-          <button class="rs-btn active" onclick="setFontSize(16)">А</button>
-          <button class="rs-btn" onclick="setFontSize(18)">А+</button>
-          <button class="rs-btn" onclick="setFontSize(20)">А++</button>
-        </div>
-      </div>
-      <div class="rs-row">
-        <span class="rs-label">Интервал</span>
-        <div class="rs-btns">
-          <button class="rs-btn" onclick="setLineHeight(1.5)">1.5</button>
-          <button class="rs-btn active" onclick="setLineHeight(1.9)">1.9</button>
-          <button class="rs-btn" onclick="setLineHeight(2.3)">2.3</button>
-        </div>
-      </div>
-      <div class="rs-row">
-        <span class="rs-label">Тема</span>
-      </div>
+      <div class="rs-row"><span class="rs-label">Шрифт</span><div class="rs-btns">
+        <button class="rs-btn" onclick="setFontSize(14)">А–</button>
+        <button class="rs-btn active" onclick="setFontSize(16)">А</button>
+        <button class="rs-btn" onclick="setFontSize(18)">А+</button>
+        <button class="rs-btn" onclick="setFontSize(20)">А++</button>
+      </div></div>
+      <div class="rs-row"><span class="rs-label">Интервал</span><div class="rs-btns">
+        <button class="rs-btn" onclick="setLineHeight(1.5)">1.5</button>
+        <button class="rs-btn active" onclick="setLineHeight(1.9)">1.9</button>
+        <button class="rs-btn" onclick="setLineHeight(2.3)">2.3</button>
+      </div></div>
+      <div class="rs-row"><span class="rs-label">Тема</span></div>
       <div class="rs-themes">
-        <div class="rs-theme active" style="background:#0a0814" onclick="setReaderTheme('#0a0814','#ddd8ee',this)"></div>
-        <div class="rs-theme" style="background:#1a1a2e" onclick="setReaderTheme('#1a1a2e','#e8e0f0',this)"></div>
-        <div class="rs-theme" style="background:#f5f0e8" onclick="setReaderTheme('#f5f0e8','#2a1a0a',this)"></div>
+        <div class="rs-theme active" style="background:#080614" onclick="setReaderTheme('#080614','#d8d0ec',this)"></div>
+        <div class="rs-theme" style="background:#0f1a2e" onclick="setReaderTheme('#0f1a2e','#dce8f0',this)"></div>
+        <div class="rs-theme" style="background:#f2ede4" onclick="setReaderTheme('#f2ede4','#2a1a0a',this)"></div>
       </div>
     </div>
   </div>
+
+  <!-- Body -->
   <div class="reader-body" id="readerBody" onscroll="updateReadProgress()">
-    <div class="reader-content" id="readerContent"></div>
+    <div id="readerContent"></div>
   </div>
+
+  <!-- Bottom bar -->
   <div class="reader-bottombar">
-    <button class="reader-btn" onclick="prevChapter()">‹</button>
+    <button class="reader-btn" onclick="prevChapter()">‹ Пред.</button>
     <div class="reader-progress-wrap">
       <div class="reader-progress-bar" onclick="seekProgress(event)">
         <div class="reader-progress-fill" id="readerProgressFill" style="width:0%"></div>
       </div>
     </div>
     <div class="reader-page-info" id="readerPageInfo">Глава 1</div>
-    <button class="reader-btn" onclick="nextChapter()">›</button>
+    <button class="reader-btn" onclick="nextChapter()">След. ›</button>
   </div>
 </div>
+
 
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
 <!-- ==================== JAVASCRIPT ==================== -->
 <script>
+
+// ==========================================
+// BOOK COVERS
+// ==========================================
+const COVERS = {
+  0:  'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=300&h=420&fit=crop&auto=format',
+  1:  'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=300&h=420&fit=crop&auto=format',
+  2:  'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=420&fit=crop&auto=format',
+  3:  'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=420&fit=crop&auto=format',
+  4:  'https://images.unsplash.com/photo-1503095396549-807759245b35?w=300&h=420&fit=crop&auto=format',
+  5:  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&h=420&fit=crop&auto=format',
+  6:  'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=300&h=420&fit=crop&auto=format',
+  7:  'https://images.unsplash.com/photo-1490750967868-88df5691cc2e?w=300&h=420&fit=crop&auto=format',
+  8:  'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=300&h=420&fit=crop&q=60',
+  9:  'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=300&h=420&fit=crop&auto=format',
+  10: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&h=420&fit=crop&auto=format',
+  11: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&h=420&fit=crop&auto=format',
+};
+const COVER_FALLBACKS = {
+  0:'linear-gradient(135deg,#2d1b69,#1e3a5f)',1:'linear-gradient(135deg,#1a1035,#2d1b69)',
+  2:'linear-gradient(135deg,#1a1a1a,#3d1515)',3:'linear-gradient(135deg,#2a1a0a,#3d2b1a)',
+  4:'linear-gradient(135deg,#1a0a2e,#2d1b5f)',5:'linear-gradient(135deg,#0a1a2e,#1b3a5f)',
+  6:'linear-gradient(135deg,#0f1a2e,#2a1069)',7:'linear-gradient(135deg,#2a1035,#451550)',
+  8:'linear-gradient(135deg,#2a0a0a,#4a1515)',9:'linear-gradient(135deg,#0a1a1a,#0f3535)',
+  10:'linear-gradient(135deg,#0a1a0a,#1a3a1a)',11:'linear-gradient(135deg,#1a0a1a,#3a1535)',
+};
+function coverImg(bookId, w=300, h=420) {
+  const url = COVERS[bookId];
+  const fb = COVER_FALLBACKS[bookId] || '#1a1535';
+  if (!url) return `<div style="width:100%;height:100%;background:${fb}"></div>`;
+  const u = url.replace('w=300','w='+w).replace('h=420','h='+h);
+  return `<img src="${u}" alt="" loading="lazy" onerror="this.parentElement.style.background='${fb}';this.remove()" style="width:100%;height:100%;object-fit:cover;display:block">`;
+}
+
 // ==========================================
 // DATA
 // ==========================================
@@ -1607,11 +1906,12 @@ function makeBookCard(book) {
   const saved = state.bookmarks.includes(book.id);
   const prog = getProgress(book.id);
   return `<div class="book-card" onclick="openBookDetail(${book.id})">
-    <div class="book-cover" style="background:${book.bg}">
-      ${book.emoji}
+    <div class="book-cover">
+      ${coverImg(book.id, 200, 280)}
+      <div class="book-cover-overlay"></div>
       ${getBadge(book)}
       <span class="cover-rating">★ ${book.rating}</span>
-      <button class="cover-bookmark ${saved ? 'saved' : ''}" onclick="event.stopPropagation();toggleBookmark(${book.id})" title="${saved ? 'Убрать из закладок' : 'В закладки'}">${saved ? '🔖' : '☆'}</button>
+      <button class="cover-bookmark ${saved ? 'saved' : ''}" onclick="event.stopPropagation();toggleBookmark(${book.id})">${saved ? '🔖' : '☆'}</button>
     </div>
     <div class="book-info">
       <div class="book-title">${book.title}</div>
@@ -1649,7 +1949,7 @@ function renderHome() {
       const prog = state.readProgress[b.id];
       const pct = Math.round((prog.chapter / b.chapters) * 100);
       return `<div class="bookmark-card" onclick="openBook(${b.id})">
-        <div class="bookmark-cover" style="background:${b.bg}">${b.emoji}</div>
+        <div class="bookmark-cover">${coverImg(b.id, 80, 100)}</div>
         <div class="bookmark-info">
           <div class="bookmark-title">${b.title}</div>
           <div class="bookmark-meta">Глава ${prog.chapter} из ${b.chapters}</div>
@@ -1714,11 +2014,11 @@ function openBookDetail(bookId) {
   currentModalBook = book;
 
   const cover = document.getElementById('modalCover');
-  cover.style.background = book.bg;
-  cover.innerHTML = `<span style="font-size:4rem">${book.emoji}</span>
+  cover.innerHTML = coverImg(book.id, 520, 200) +
+    `<div class="modal-cover-overlay"></div>
+    <div class="modal-cover-title">${book.title}</div>
     <button class="modal-close" onclick="closeModalDirect()">✕</button>`;
 
-  document.getElementById('modalTitle').textContent = book.title;
   document.getElementById('modalAuthor').textContent = book.author;
   document.getElementById('modalStats').innerHTML = `
     <div class="modal-stat">★ <strong>${book.rating}</strong></div>
@@ -1786,6 +2086,86 @@ function shareBook() {
 }
 
 // ==========================================
+
+// ==========================================
+// CHAPTER IMAGES — atmospheric illustrations
+// ==========================================
+const CHAPTER_IMAGES = {
+  // Сакура в снегу — winter Japan / art
+  0: [
+    { url: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=900&h=500&fit=crop&auto=format', caption: 'Первый снег в Киото' },
+    { url: 'https://images.unsplash.com/photo-1478093637862-4c8b1a25e6b9?w=900&h=400&fit=crop&auto=format', caption: 'Нотный лист у канала' },
+  ],
+  // Луна между нами — night city
+  1: [
+    { url: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=900&h=500&fit=crop&auto=format', caption: 'Ночной бар. Они снова встретились.' },
+  ],
+  // Клинок и тень — dark fantasy
+  2: [
+    { url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=900&h=500&fit=crop&auto=format', caption: 'Приказ богов. Побег.' },
+  ],
+  // Кофе на двоих — cosy cafe
+  3: [
+    { url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=900&h=500&fit=crop&auto=format', caption: 'Капучино без сахара. Каждое утро.' },
+  ],
+  // Маски и сердца — theater
+  4: [
+    { url: 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=900&h=500&fit=crop&auto=format', caption: 'За кулисами. Аплодисменты стихли.' },
+  ],
+  // Волны зовут домой — sea
+  5: [
+    { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&h=500&fit=crop&auto=format', caption: 'Море было серым — живым, дышащим.' },
+  ],
+  // За семью печатями — mystical
+  6: [
+    { url: 'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=900&h=500&fit=crop&auto=format', caption: 'Контейнер уровня семь. Это невозможно.' },
+  ],
+  // Весенний ветер — spring rooftop
+  7: [
+    { url: 'https://images.unsplash.com/photo-1490750967868-88df5691cc2e?w=900&h=500&fit=crop&auto=format', caption: 'На крыше, в полночь, под звёздами.' },
+  ],
+  // Красный фонарь — edo japan
+  8: [
+    { url: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=900&h=500&fit=crop&q=60', caption: 'Осень в период Эдо. Дороги и хризантемы.' },
+  ],
+  // Ноты для двоих — piano
+  9: [
+    { url: 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=900&h=500&fit=crop&auto=format', caption: 'Один инструмент на двоих.' },
+  ],
+  // Зелёный остров — botany
+  10: [
+    { url: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=900&h=500&fit=crop&auto=format', caption: 'Редкое растение. И незнакомец в очках.' },
+  ],
+  // Цирк без огней — circus
+  11: [
+    { url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=900&h=500&fit=crop&auto=format', caption: 'Под куполом цирка. Страх и высота.' },
+  ],
+};
+
+
+
+function initReaderPetals() {
+  const c = document.getElementById('readerPetals');
+  if (!c) return;
+  c.innerHTML = '';
+  for (let i = 0; i < 14; i++) {
+    const d = document.createElement('div');
+    d.className = 'reader-petal';
+    d.style.left = Math.random() * 100 + '%';
+    d.style.top = Math.random() * 30 + '%';
+    const dur = 12 + Math.random() * 16;
+    const size = 6 + Math.random() * 8;
+    d.style.animationDuration = dur + 's';
+    d.style.animationDelay = Math.random() * 12 + 's';
+    const hue = Math.random() > .5 ? '#e879f9' : '#c084fc';
+    d.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 10 10">
+      <ellipse cx="5" cy="5" rx="4" ry="2.5" fill="${hue}" opacity=".25" transform="rotate(${Math.random()*360} 5 5)"/>
+    </svg>`;
+    c.appendChild(d);
+  }
+}
+
+
 // READER
 // ==========================================
 function openBook(bookId) {
@@ -1805,6 +2185,7 @@ function openBookAtChapter(bookId, chapterIdx) {
 
   document.getElementById('readerTitle').textContent = book.title;
   document.getElementById('reader-overlay').classList.add('open');
+  initReaderPetals();
 
   // Build chapter select
   const sel = document.getElementById('readerChapterSelect');
@@ -1817,31 +2198,119 @@ function openBookAtChapter(bookId, chapterIdx) {
   startReadTimer();
 }
 
+
 function renderChapter() {
   const book = state.currentBook;
   const ch = book.chapterContent[state.currentChapter];
+  const imgs = CHAPTER_IMAGES[book.id] || [];
+  const img = imgs[Math.min(state.currentChapter, imgs.length - 1)] || null;
+  const headerImg = COVERS[book.id] || '';
+
+  // Choose illustration url: chapter-specific or book cover
+  const illustUrl = img ? img.url : (COVERS[book.id] || '');
+  const illustCaption = img ? img.caption : '';
+
   if (!ch) {
-    document.getElementById('readerContent').innerHTML = `<div style="text-align:center;padding:4rem;color:var(--text3)">
-      <div style="font-size:3rem;margin-bottom:1rem">📝</div>
-      <p>Эта глава ещё не написана</p>
-      <p style="margin-top:0.5rem;font-size:0.8rem">Следите за обновлениями!</p>
-    </div>`;
-  } else {
-    document.getElementById('readerContent').innerHTML = ch.content;
+    document.getElementById('readerContent').innerHTML = `
+      <div style="text-align:center;padding:8rem 2rem;color:#7a6a9a">
+        <div style="font-size:3rem;margin-bottom:1.5rem">📝</div>
+        <p style="font-size:1.1rem;margin-bottom:.5rem;color:#b8a8d8">Эта глава ещё не написана</p>
+        <p style="font-size:.85rem">Следите за обновлениями!</p>
+      </div>`;
+    return;
   }
 
+  // Parse paragraphs from the chapter HTML, animate each one
+  // Build animated chapter content
+  const rawContent = ch.content;
+
+  // Extract text after </h3> for the body
+  const h3match = rawContent.match(/<h3[^>]*>.*?<\/h3>/s);
+  const chapterTitleText = h3match ? h3match[0].replace(/<[^>]+>/g,'') : ch.title;
+  const bodyContent = rawContent.replace(/<h3[^>]*>.*?<\/h3>/s, '');
+
+  // Animate paragraphs with staggered delay
+  const animatedBody = bodyContent.replace(/<p/g, '<p class="_anim"');
+
+  // Find good split point for inline illustration (after ~40% of content)
+  const paragraphs = bodyContent.split('</p>');
+  const splitAt = Math.max(1, Math.floor(paragraphs.length * 0.45));
+  const firstHalf = paragraphs.slice(0, splitAt).join('</p>') + (paragraphs[splitAt-1]?'':'');
+  const secondHalf = paragraphs.slice(splitAt).join('</p>');
+
+  const inlineIllust = illustUrl ? `
+    <div class="chapter-illustration">
+      <img src="${illustUrl.replace('h=500','h=340').replace('w=900','w=800')}" 
+           alt="${illustCaption}"
+           onerror="this.closest('.chapter-illustration').style.display='none'">
+      ${illustCaption ? `<div class="chapter-illustration-caption">${illustCaption}</div>` : ''}
+    </div>` : '';
+
+  // Pick a mood quote from the chapter
+  const speechMatches = rawContent.match(/<p class="speech">(.*?)<\/p>/gs) || [];
+  const moodQuote = speechMatches.length > 1 ? speechMatches[speechMatches.length-1]
+    .replace('<p class="speech">','').replace('</p>','').replace(/<[^>]+>/g,'') : null;
+  const quoteBlock = moodQuote ? `
+    <div class="atmo-quote"><p>${moodQuote}</p></div>` : '';
+
+  document.getElementById('readerContent').innerHTML = `
+    <div class="chapter-header" id="chapterHeader">
+      <div class="chapter-header-img" id="chapterHeaderImg" 
+           style="background-image:url('${illustUrl}')"></div>
+      <div class="chapter-header-overlay"></div>
+      <div class="chapter-header-content">
+        <div class="chapter-book-label">${book.title} · Глава ${state.currentChapter + 1} из ${book.chapters}</div>
+        <div class="chapter-title-main">${chapterTitleText}</div>
+        <div class="chapter-divider"></div>
+      </div>
+    </div>
+    <div class="reader-content-wrap">
+      <div class="reader-content" id="readerInner">
+        ${firstHalf.replace(/<p /g, '<p ')}
+        ${inlineIllust}
+        ${secondHalf.replace(/<p /g, '<p ')}
+        ${quoteBlock}
+        <div class="chapter-end">
+          <div class="chapter-end-title">✦ Конец главы ${state.currentChapter + 1} ✦</div>
+          <div class="chapter-end-text">${state.currentChapter + 1 < book.chapterContent.length ? 'Продолжение следует...' : 'Вы прочитали все доступные главы'}</div>
+          <div class="chapter-end-btns">
+            ${state.currentChapter + 1 < book.chapterContent.length 
+              ? '<button class="chapter-end-btn primary" onclick="nextChapter()">Следующая глава →</button>' 
+              : '<button class="chapter-end-btn primary" onclick="closeReader()">← Вернуться в библиотеку</button>'}
+            <button class="chapter-end-btn ghost" onclick="toggleBookmarkReader()">🔖 Закладка</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  // Animate paragraphs in
   const body = document.getElementById('readerBody');
   body.scrollTop = 0;
+  applyReaderStyle();
 
-  document.getElementById('readerPageInfo').textContent =
-    `Глава ${state.currentChapter + 1} из ${book.chapters}`;
+  setTimeout(() => {
+    const ps = document.querySelectorAll('#readerInner p, #readerInner .scene-break, #readerInner .atmo-quote');
+    ps.forEach((p, i) => {
+      p.style.opacity = '0';
+      p.style.transform = 'translateY(14px)';
+      p.style.transition = `opacity .5s ease ${.05 * Math.min(i, 20)}s, transform .5s ease ${.05 * Math.min(i,20)}s`;
+      setTimeout(() => { p.style.opacity = '1'; p.style.transform = 'none'; }, 50 + i * 40);
+    });
 
+    // Parallax header image
+    const headerImg = document.getElementById('chapterHeaderImg');
+    if (headerImg) {
+      setTimeout(() => headerImg.classList.add('parallax-active'), 100);
+    }
+  }, 50);
+
+  document.getElementById('readerPageInfo').textContent = `Глава ${state.currentChapter + 1} из ${book.chapters}`;
   document.getElementById('readerChapterSelect').value = state.currentChapter;
-
   updateReadProgress();
   saveProgress();
-  applyReaderStyle();
 }
+
+
 
 function nextChapter() {
   const book = state.currentBook;
@@ -1992,7 +2461,7 @@ function renderBookmarks() {
     if (!book) return '';
     const prog = getProgress(id);
     return `<div class="bookmark-card" onclick="openBookDetail(${id})">
-      <div class="bookmark-cover" style="background:${book.bg}">${book.emoji}</div>
+      <div class="bookmark-cover">${coverImg(book.id, 80, 100)}</div>
       <div class="bookmark-info">
         <div class="bookmark-title">${book.title}</div>
         <div class="bookmark-meta">${book.author} · ★${book.rating} · ${book.chapters} гл.</div>
@@ -2043,7 +2512,7 @@ function renderHistory() {
   }
   list.innerHTML = state.history.map((entry, i) =>
     `<div class="history-item" onclick="openBook(${entry.bookId})">
-      <div class="history-emoji">${entry.emoji}</div>
+      <div class="history-thumb">${coverImg(entry.bookId, 60, 80)}</div>
       <div class="history-text">
         <div class="history-title">${entry.title}</div>
         <div class="history-sub">Глава ${entry.chapter} из ${entry.totalChapters}</div>
@@ -2144,7 +2613,7 @@ function doSearchWith(query) {
   document.getElementById('searchQuery').textContent = query;
   document.getElementById('searchResults').innerHTML = results.length
     ? results.map(b => `<div class="search-result-item" onclick="openBookDetail(${b.id})">
-        <div class="search-result-emoji">${b.emoji}</div>
+        <div class="search-result-thumb">${coverImg(b.id, 70, 90)}</div>
         <div class="search-result-info">
           <div class="search-result-title">${b.title}</div>
           <div class="search-result-meta">${b.author} · ★${b.rating} · ${b.chapters} гл. · ${b.genre}</div>
@@ -2194,6 +2663,42 @@ function openBookAtChapter(bookId, chapterIdx) {
 }
 
 // ==========================================
+
+// ==========================================
+// SPLASH SCREEN
+// ==========================================
+(function initSplash() {
+  // Generate petals in splash
+  const sp = document.getElementById('splashPetals');
+  if (sp) {
+    for (let i = 0; i < 22; i++) {
+      const d = document.createElement('div');
+      d.className = 'splash-petal';
+      d.style.left = Math.random() * 100 + '%';
+      d.style.top = Math.random() * 100 + '%';
+      const dur = 10 + Math.random() * 14;
+      const size = 6 + Math.random() * 9;
+      d.style.animationDuration = dur + 's';
+      d.style.animationDelay = (Math.random() * 8 - 4) + 's';
+      const hue = ['#e879f9','#c084fc','#a78bca'][Math.floor(Math.random()*3)];
+      d.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 10 10">
+        <ellipse cx="5" cy="5" rx="4" ry="2.5" fill="${hue}" opacity=".2" transform="rotate(${Math.random()*360} 5 5)"/>
+      </svg>`;
+      sp.appendChild(d);
+    }
+  }
+
+  // Hide splash after 2.2s
+  setTimeout(() => {
+    const splash = document.getElementById('splash');
+    if (splash) {
+      splash.classList.add('hiding');
+      setTimeout(() => { if(splash.parentNode) splash.parentNode.removeChild(splash); }, 750);
+    }
+  }, 2200);
+})();
+
+
 // INIT
 // ==========================================
 loadState();
