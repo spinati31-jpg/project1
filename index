@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сакура Библиотека — Читалка Яоев</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0918;
+    --bg2: #120f24;
+    --bg3: #1a1535;
+    --bg4: #221d45;
+    --accent: #9333ea;
+    --accent2: #c084fc;
+    --accent3: #e879f9;
+    --text: #ede9f8;
+    --text2: #b8a8d8;
+    --text3: #7a6a9a;
+    --border: #2e2560;
+    --border2: #4c3d8a;
+    --card-h: 220px;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ==================== TOAST ==================== */
+  #toast-container {
+    position: fixed; bottom: 2rem; right: 2rem;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 9999; pointer-events: none;
+  }
+  .toast {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.7rem 1.2rem;
+    font-size: 0.82rem;
+    color: var(--text);
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.5s forwards;
+    pointer-events: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes fadeOut { to { opacity: 0; transform: translateX(20px); } }
+
+  /* ==================== SIDEBAR ==================== */
+  #sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 240px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 50;
+    transition: transform 0.3s;
+  }
+  .sidebar-logo {
+    padding: 1.5rem 1.2rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo h1 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.15rem;
+    color: var(--accent2);
+    line-height: 1.3;
+  }
+  .sidebar-logo p { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
+
+  .sidebar-nav { padding: 0.8rem 0; flex: 1; overflow-y: auto; }
+  .nav-section { padding: 0.6rem 1.2rem 0.2rem; font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.12em; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    font-size: 0.85rem; color: var(--text2);
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: var(--bg3); color: var(--accent2); }
+  .nav-item.active::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--accent);
+  }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  .nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+
+  .sidebar-bottom {
+    padding: 1rem 1.2rem;
+    border-top: 1px solid var(--border);
+  }
+  .user-pill {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0.6rem 0.8rem;
+    background: var(--bg3);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 0.8rem; font-weight: 600; }
+  .user-level { font-size: 0.67rem; color: var(--text3); }
+
+  /* ==================== MAIN ==================== */
+  #main {
+    margin-left: 240px;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  /* ==================== TOPBAR ==================== */
+  #topbar {
+    position: sticky; top: 0;
+    background: rgba(11,9,24,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.8rem 2rem;
+    display: flex; align-items: center; gap: 1rem;
+    z-index: 40;
+  }
+  .topbar-search {
+    flex: 1;
+    display: flex; align-items: center;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0 1rem;
+    gap: 8px;
+    transition: border-color 0.2s;
+  }
+  .topbar-search:focus-within { border-color: var(--accent2); }
+  .topbar-search span { color: var(--text3); font-size: 0.9rem; }
+  .topbar-search input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-size: 0.85rem; padding: 0.5rem 0;
+    font-family: inherit;
+  }
+  .topbar-search input::placeholder { color: var(--text3); }
+
+  .topbar-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text2);
+    padding: 0.45rem 0.9rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .topbar-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .topbar-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .topbar-btn.primary:hover { background: #7c22d4; border-color: #7c22d4; }
+
+  /* ==================== CONTENT ==================== */
+  #content { flex: 1; padding: 2rem; }
+
+  /* ==================== PAGES ==================== */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, #1a1040 0%, #0f0930 50%, #1a0d40 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    display: flex; gap: 2rem; align-items: center;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 70% 50%, rgba(147,51,234,0.12) 0%, transparent 60%);
+  }
+  .hero-text { flex: 1; position: relative; }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(147,51,234,0.2);
+    border: 1px solid rgba(192,132,252,0.3);
+    color: var(--accent2);
+    font-size: 0.7rem;
+    padding: 3px 12px;
+    border-radius: 999px;
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.1em;
+  }
+  .hero h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.8rem;
+    line-height: 1.3;
+    margin-bottom: 0.7rem;
+    color: #fff;
+  }
+  .hero p { font-size: 0.88rem; color: var(--text2); line-height: 1.7; margin-bottom: 1.2rem; max-width: 480px; }
+  .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    padding: 0.6rem 1.4rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-weight: 600;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #7c22d4; transform: translateY(-1px); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--text2); }
+  .btn-ghost:hover { border-color: var(--accent2); color: var(--accent2); }
+  .hero-cover {
+    width: 120px; height: 170px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.5rem;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(160deg, #2d1b69, #1e3a5f);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  }
+
+  /* SECTION */
+  .section { margin-bottom: 2.5rem; }
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .section-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    color: var(--accent2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-more {
+    font-size: 0.75rem; color: var(--text3);
+    cursor: pointer; transition: color 0.2s;
+    background: none; border: none; font-family: inherit;
+  }
+  .section-more:hover { color: var(--accent2); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 6px; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .tab {
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text3);
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .tab:hover { border-color: var(--border2); color: var(--text2); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* BOOK GRID */
+  .book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 1rem;
+  }
+  .book-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    position: relative;
+  }
+  .book-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent2);
+    box-shadow: 0 12px 30px rgba(147,51,234,0.2);
+  }
+  .book-cover {
+    width: 100%; height: var(--card-h);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.2rem;
+    position: relative;
+  }
+  .cover-badge {
+    position: absolute; top: 7px; left: 7px;
+    font-size: 0.6rem; font-weight: 700;
+    padding: 2px 8px; border-radius: 999px;
+  }
+  .badge-new { background: #16a34a; color: #fff; }
+  .badge-hot { background: #dc2626; color: #fff; }
+  .badge-done { background: var(--accent); color: #fff; }
+  .badge-ongoing { background: #d97706; color: #fff; }
+  .cover-rating {
+    position: absolute; top: 7px; right: 7px;
+    background: rgba(0,0,0,0.65);
+    color: #fbbf24;
+    font-size: 0.65rem; font-weight: 700;
+    padding: 2px 7px; border-radius: 999px;
+  }
+  .cover-bookmark {
+    position: absolute; bottom: 7px; right: 7px;
+    background: rgba(0,0,0,0.6);
+    border: none; border-radius: 6px;
+    color: #fff; font-size: 0.75rem;
+    padding: 3px 7px;
+    cursor: pointer; transition: background 0.2s;
+    opacity: 0;
+  }
+  .book-card:hover .cover-bookmark { opacity: 1; }
+  .cover-bookmark:hover { background: var(--accent); }
+  .cover-bookmark.saved { opacity: 1; color: #fbbf24; }
+  .book-info { padding: 0.6rem 0.8rem 0.8rem; }
+  .book-title { font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; line-height: 1.3; }
+  .book-author { font-size: 0.68rem; color: var(--text3); margin-bottom: 0.4rem; }
+  .book-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.67rem; color: var(--text3);
+  }
+  .genre-pill {
+    background: var(--bg4);
+    color: var(--text2);
+    font-size: 0.6rem; padding: 2px 7px;
+    border-radius: 999px;
+  }
+
+  /* PROGRESS BAR */
+  .read-progress { margin-top: 0.5rem; }
+  .progress-label { font-size: 0.63rem; color: var(--text3); margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .progress-bar { height: 3px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s; }
+
+  /* STATS */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.2rem 1rem;
+    text-align: center;
+  }
+  .stat-icon { font-size: 1.5rem; margin-bottom: 0.4rem; }
+  .stat-num { font-size: 1.6rem; font-weight: 800; color: var(--accent2); }
+  .stat-label { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
+
+  /* ==================== READER ==================== */
+  #reader-overlay {
+    position: fixed; inset: 0;
+    background: #0a0814;
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+  }
+  #reader-overlay.open { display: flex; }
+  .reader-topbar {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.8rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .reader-title { flex: 1; font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: var(--text2); }
+  .reader-controls { display: flex; align-items: center; gap: 8px; }
+  .reader-btn {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text2);
+    padding: 0.35rem 0.8rem; font-size: 0.78rem;
+    cursor: pointer; font-family: inherit; transition: all 0.2s;
+  }
+  .reader-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .reader-chapter-select {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text2);
+    padding: 0.35rem 0.6rem; font-size: 0.78rem;
+    cursor: pointer; font-family: inherit;
+  }
+  .reader-body {
+    flex: 1; overflow-y: auto;
+    padding: 3rem 0;
+  }
+  .reader-content {
+    max-width: 680px; margin: 0 auto; padding: 0 2rem;
+    font-size: var(--reader-font-size, 1rem);
+    line-height: var(--reader-line-height, 1.9);
+    color: var(--reader-text-color, #ddd8ee);
+  }
+  .reader-content h3 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.4em; color: var(--accent2);
+    margin-bottom: 1.5rem; text-align: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .reader-content p { margin-bottom: 1.2em; text-indent: 2em; }
+  .reader-content .speech { text-indent: 0; color: #e8e0f5; font-style: italic; }
+  .reader-content .scene-break {
+    text-align: center; color: var(--text3);
+    margin: 2rem 0; font-size: 1.2rem; letter-spacing: 0.5em;
+  }
+  .reader-bottombar {
+    padding: 0.7rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .reader-progress-wrap { flex: 1; }
+  .reader-progress-bar { height: 4px; background: var(--bg4); border-radius: 2px; cursor: pointer; }
+  .reader-progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+  .reader-page-info { font-size: 0.75rem; color: var(--text3); white-space: nowrap; }
+
+  /* READER SETTINGS PANEL */
+  .reader-settings {
+    position: absolute; top: 3.5rem; right: 1.5rem;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 1.2rem;
+    width: 260px;
+    display: none;
+    z-index: 10;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+  }
+  .reader-settings.open { display: block; }
+  .rs-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .rs-label { font-size: 0.8rem; color: var(--text2); }
+  .rs-btns { display: flex; gap: 5px; }
+  .rs-btn {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text2);
+    padding: 0.25rem 0.6rem; font-size: 0.75rem;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .rs-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .rs-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .rs-themes { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+  .rs-theme {
+    border-radius: 8px; height: 32px; cursor: pointer;
+    border: 2px solid transparent; transition: border-color 0.2s;
+  }
+  .rs-theme.active { border-color: var(--accent2); }
+
+  /* ==================== MODAL ==================== */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    display: none; align-items: center; justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 18px;
+    padding: 0;
+    width: 100%; max-width: 520px;
+    overflow: hidden;
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: none; } }
+  .modal-cover-strip {
+    height: 120px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 4rem;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 12px; right: 14px;
+    background: rgba(0,0,0,0.4); border: none;
+    color: #fff; font-size: 1.1rem; width: 28px; height: 28px;
+    border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .modal-close:hover { background: rgba(0,0,0,0.7); }
+  .modal-body { padding: 1.4rem 1.6rem 1.6rem; }
+  .modal-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.25rem; color: var(--text); margin-bottom: 0.3rem;
+  }
+  .modal-author { font-size: 0.78rem; color: var(--text3); margin-bottom: 0.8rem; }
+  .modal-stats {
+    display: flex; gap: 1.2rem; margin-bottom: 1rem;
+    font-size: 0.75rem; color: var(--text2);
+  }
+  .modal-stat { display: flex; align-items: center; gap: 5px; }
+  .modal-divider { height: 1px; background: var(--border); margin: 0.8rem 0; }
+  .modal-desc {
+    font-size: 0.82rem; color: var(--text2);
+    line-height: 1.75; margin-bottom: 1rem;
+  }
+  .modal-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.2rem; }
+  .modal-tag {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text2); font-size: 0.65rem;
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .modal-chapters {
+    max-height: 160px; overflow-y: auto;
+    background: var(--bg);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+  }
+  .chapter-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 1rem;
+    font-size: 0.78rem; color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .chapter-item:last-child { border-bottom: none; }
+  .chapter-item:hover { background: var(--bg3); color: var(--text); }
+  .chapter-item.read { color: var(--text3); }
+  .chapter-item.read::after { content: '✓'; color: var(--accent2); font-size: 0.7rem; }
+  .modal-actions { display: flex; gap: 8px; }
+
+  /* ==================== BOOKMARKS PAGE ==================== */
+  .bookmarks-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+  .bookmark-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem;
+    display: flex; gap: 1rem; align-items: flex-start;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+  .bookmark-card:hover { border-color: var(--border2); }
+  .bookmark-cover {
+    width: 60px; height: 80px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; flex-shrink: 0;
+  }
+  .bookmark-info { flex: 1; min-width: 0; }
+  .bookmark-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.2rem; }
+  .bookmark-meta { font-size: 0.7rem; color: var(--text3); margin-bottom: 0.5rem; }
+  .bookmark-remove {
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; font-size: 0.85rem; padding: 2px;
+    transition: color 0.2s;
+  }
+  .bookmark-remove:hover { color: #dc2626; }
+
+  /* ==================== HISTORY PAGE ==================== */
+  .history-list { display: flex; flex-direction: column; gap: 0.7rem; }
+  .history-item {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.85rem 1rem;
+    display: flex; align-items: center; gap: 1rem;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .history-item:hover { border-color: var(--border2); }
+  .history-emoji { font-size: 1.5rem; width: 40px; text-align: center; flex-shrink: 0; }
+  .history-text { flex: 1; }
+  .history-title { font-size: 0.85rem; font-weight: 600; }
+  .history-sub { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
+  .history-time { font-size: 0.68rem; color: var(--text3); }
+  .history-clear {
+    background: none; border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text3); padding: 0.4rem 0.9rem;
+    font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
+  }
+  .history-clear:hover { border-color: #dc2626; color: #dc2626; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center; padding: 4rem 2rem;
+    color: var(--text3);
+  }
+  .empty-state .es-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .empty-state h3 { font-size: 1rem; color: var(--text2); margin-bottom: 0.5rem; }
+  .empty-state p { font-size: 0.82rem; }
+
+  /* ==================== SETTINGS PAGE ==================== */
+  .settings-section {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 1.5rem; overflow: hidden;
+  }
+  .settings-section-head {
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem; font-weight: 700; color: var(--text2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.9rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row-label { color: var(--text2); }
+  .settings-row-sub { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
+  .toggle {
+    width: 38px; height: 20px;
+    background: var(--border2); border-radius: 999px;
+    position: relative; cursor: pointer; transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px;
+    background: #fff; border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(18px); }
+  .select-input {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text2); padding: 0.3rem 0.6rem;
+    font-size: 0.78rem; font-family: inherit; cursor: pointer;
+  }
+
+  /* ==================== SEARCH RESULTS ==================== */
+  .search-result-item {
+    display: flex; gap: 1rem; align-items: center;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.9rem 1rem;
+    cursor: pointer; transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 0.7rem;
+  }
+  .search-result-item:hover { border-color: var(--border2); background: var(--bg3); }
+  .search-result-emoji { font-size: 2rem; width: 50px; text-align: center; flex-shrink: 0; }
+  .search-result-info { flex: 1; }
+  .search-result-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.2rem; }
+  .search-result-meta { font-size: 0.7rem; color: var(--text3); }
+
+  /* RATING STARS */
+  .stars { display: flex; gap: 2px; }
+  .star { font-size: 0.85rem; color: var(--border2); cursor: pointer; transition: color 0.1s; }
+  .star.active { color: #fbbf24; }
+
+  /* FLOATING PETAL */
+  .petal-bg {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .petal-el {
+    position: absolute;
+    width: 6px; height: 6px;
+    background: rgba(192,132,252,0.15);
+    border-radius: 50% 0 50% 0;
+    animation: petalFall linear infinite;
+  }
+  @keyframes petalFall {
+    0% { transform: translateY(-30px) rotate(0deg) translateX(0); opacity: 0.2; }
+    50% { transform: translateY(50vh) rotate(180deg) translateX(30px); opacity: 0.1; }
+    100% { transform: translateY(110vh) rotate(360deg) translateX(-15px); opacity: 0; }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    #sidebar { transform: translateX(-100%); }
+    #sidebar.open { transform: none; }
+    #main { margin-left: 0; }
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+    .hero { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Floating petals -->
+<div class="petal-bg" id="petalBg"></div>
+
+<!-- Sidebar -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <h1>🌸 Сакура<br>Библиотека</h1>
+    <p>Читалка яоев и BL манги</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Главное</div>
+    <div class="nav-item active" onclick="navigate('home', this)">
+      <span class="nav-icon">🏠</span> Главная
+    </div>
+    <div class="nav-item" onclick="navigate('catalog', this)">
+      <span class="nav-icon">📚</span> Каталог
+      <span class="nav-badge" id="catalogCount">12</span>
+    </div>
+    <div class="nav-item" onclick="navigate('bookmarks', this)">
+      <span class="nav-icon">🔖</span> Закладки
+      <span class="nav-badge" id="bookmarkCount">0</span>
+    </div>
+    <div class="nav-item" onclick="navigate('history', this)">
+      <span class="nav-icon">🕐</span> История
+    </div>
+    <div class="nav-section">Категории</div>
+    <div class="nav-item" onclick="filterGenre('romance', this)">
+      <span class="nav-icon">💕</span> Романтика
+    </div>
+    <div class="nav-item" onclick="filterGenre('drama', this)">
+      <span class="nav-icon">🎭</span> Драма
+    </div>
+    <div class="nav-item" onclick="filterGenre('fantasy', this)">
+      <span class="nav-icon">✨</span> Фэнтези
+    </div>
+    <div class="nav-item" onclick="filterGenre('action', this)">
+      <span class="nav-icon">⚔️</span> Экшн
+    </div>
+    <div class="nav-item" onclick="filterGenre('slice', this)">
+      <span class="nav-icon">🍵</span> Повседневность
+    </div>
+    <div class="nav-section">Личное</div>
+    <div class="nav-item" onclick="navigate('settings', this)">
+      <span class="nav-icon">⚙️</span> Настройки
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-pill">
+      <div class="avatar" id="userAvatar">АЧ</div>
+      <div class="user-info">
+        <div class="user-name" id="userName">Анонимный читатель</div>
+        <div class="user-level">📖 Уровень: Начинающий</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div id="main">
+  <!-- Topbar -->
+  <div id="topbar">
+    <button class="topbar-btn" onclick="toggleSidebar()" id="burgerBtn">☰</button>
+    <div class="topbar-search">
+      <span>🔍</span>
+      <input type="text" id="searchInput" placeholder="Поиск по названию, автору, тегу..." oninput="handleSearch(this.value)" onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="topbar-btn" style="border:none;background:none;color:var(--text3);padding:0;font-size:0.75rem;cursor:pointer" onclick="clearSearch()">✕</button>
+    </div>
+    <button class="topbar-btn" onclick="navigate('catalog', null)">Каталог</button>
+    <button class="topbar-btn primary" onclick="openRandomBook()">🎲 Случайная</button>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+
+    <!-- HOME PAGE -->
+    <div class="page active" id="page-home">
+      <div class="hero">
+        <div class="hero-text">
+          <div class="hero-badge">✨ Рекомендация недели</div>
+          <h2>Сакура в снегу</h2>
+          <p>История о молодом художнике, чья жизнь переворачивается после встречи с таинственным скрипачом на зимней улице Киото. Медленное горение, искусство и судьба.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" onclick="openBook(0)">📖 Читать сейчас</button>
+            <button class="btn btn-ghost" onclick="toggleBookmark(0)">🔖 В закладки</button>
+          </div>
+        </div>
+        <div class="hero-cover" style="background:linear-gradient(135deg,#2d1b69,#1e3a5f)">🌸</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <div class="stat-num" id="statBooks">12</div>
+          <div class="stat-label">Книг в каталоге</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📖</div>
+          <div class="stat-num" id="statRead">0</div>
+          <div class="stat-label">Прочитано глав</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔖</div>
+          <div class="stat-num" id="statBookmarks">0</div>
+          <div class="stat-label">В закладках</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏱️</div>
+          <div class="stat-num" id="statTime">0ч</div>
+          <div class="stat-label">Времени за чтением</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🔥 Популярное</div>
+          <button class="section-more" onclick="navigate('catalog',null)">Смотреть все →</button>
+        </div>
+        <div class="book-grid" id="popularGrid"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🆕 Новинки</div>
+        </div>
+        <div class="book-grid" id="newGrid"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">📖 Продолжить чтение</div>
+        </div>
+        <div id="continueSection">
+          <div class="empty-state" style="padding:2rem">
+            <div class="es-icon">📭</div>
+            <h3>Пока ничего</h3>
+            <p>Начните читать любую книгу и она появится здесь</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATALOG PAGE -->
+    <div class="page" id="page-catalog">
+      <div class="section-head" style="margin-bottom:1.2rem">
+        <div class="section-title">📚 Весь каталог</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="select-input" id="sortSelect" onchange="sortBooks(this.value)">
+            <option value="rating">По рейтингу</option>
+            <option value="chapters">По главам</option>
+            <option value="title">По названию</option>
+            <option value="new">Новинки</option>
+          </select>
+        </div>
+      </div>
+      <div class="tabs" id="catalogTabs">
+        <button class="tab active" onclick="filterCatalog('all',this)">Все</button>
+        <button class="tab" onclick="filterCatalog('romance',this)">Романтика</button>
+        <button class="tab" onclick="filterCatalog('drama',this)">Драма</button>
+        <button class="tab" onclick="filterCatalog('fantasy',this)">Фэнтези</button>
+        <button class="tab" onclick="filterCatalog('action',this)">Экшн</button>
+        <button class="tab" onclick="filterCatalog('slice',this)">Повседневность</button>
+      </div>
+      <div class="book-grid" id="catalogGrid"></div>
+    </div>
+
+    <!-- BOOKMARKS PAGE -->
+    <div class="page" id="page-bookmarks">
+      <div class="section-head" style="margin-bottom:1.5rem">
+        <div class="section-title">🔖 Мои закладки</div>
+        <button class="history-clear" onclick="clearBookmarks()">Очистить всё</button>
+      </div>
+      <div class="bookmarks-grid" id="bookmarksGrid"></div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div class="page" id="page-history">
+      <div class="section-head" style="margin-bottom:1.5rem">
+        <div class="section-title">🕐 История чтения</div>
+        <button class="history-clear" onclick="clearHistory()">Очистить историю</button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div class="section-title" style="margin-bottom:1.5rem">⚙️ Настройки</div>
+
+      <div class="settings-section">
+        <div class="settings-section-head">👤 Профиль</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Имя пользователя</div>
+            <div class="settings-row-sub">Отображается в профиле</div>
+          </div>
+          <input type="text" id="settingUsername" class="select-input" style="width:160px"
+            onchange="updateUsername(this.value)" placeholder="Ваше имя">
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-head">📖 Чтение</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Размер шрифта</div>
+            <div class="settings-row-sub">Для читалки</div>
+          </div>
+          <div class="rs-btns">
+            <button class="rs-btn" onclick="setFontSize(14)">А–</button>
+            <button class="rs-btn active" onclick="setFontSize(16)">А</button>
+            <button class="rs-btn" onclick="setFontSize(18)">А+</button>
+            <button class="rs-btn" onclick="setFontSize(20)">А++</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Межстрочный интервал</div>
+          </div>
+          <div class="rs-btns">
+            <button class="rs-btn" onclick="setLineHeight(1.5)">Узкий</button>
+            <button class="rs-btn active" onclick="setLineHeight(1.9)">Норма</button>
+            <button class="rs-btn" onclick="setLineHeight(2.3)">Широкий</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Тема читалки</div>
+          </div>
+          <div class="rs-themes">
+            <div class="rs-theme active" style="background:#0a0814" onclick="setReaderTheme('#0a0814','#ddd8ee',this)" title="Тёмная"></div>
+            <div class="rs-theme" style="background:#1a1a2e" onclick="setReaderTheme('#1a1a2e','#e8e0f0',this)" title="Ночная"></div>
+            <div class="rs-theme" style="background:#f5f0e8" onclick="setReaderTheme('#f5f0e8','#2a1a0a',this)" title="Бумажная"></div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Автосохранение прогресса</div>
+            <div class="settings-row-sub">Запоминать место остановки</div>
+          </div>
+          <div class="toggle on" id="toggleAutosave" onclick="toggleSetting('autosave')"></div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Падающие лепестки</div>
+            <div class="settings-row-sub">Декоративный эффект</div>
+          </div>
+          <div class="toggle on" id="togglePetals" onclick="toggleSetting('petals')"></div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-head">📊 Статистика</div>
+        <div class="settings-row">
+          <div class="settings-row-label">Прочитано глав</div>
+          <div style="font-size:0.85rem;color:var(--accent2);font-weight:700" id="settingStatRead">0</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">Книг в закладках</div>
+          <div style="font-size:0.85rem;color:var(--accent2);font-weight:700" id="settingStatBk">0</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">Всего в истории</div>
+          <div style="font-size:0.85rem;color:var(--accent2);font-weight:700" id="settingStatHist">0</div>
+        </div>
+        <div class="settings-row" style="border-bottom:none">
+          <div class="settings-row-label">Сбросить всё</div>
+          <button class="history-clear" onclick="resetAll()">Сбросить данные</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH RESULTS PAGE -->
+    <div class="page" id="page-search">
+      <div class="section-title" style="margin-bottom:1.2rem">🔍 Результаты поиска: "<span id="searchQuery"></span>"</div>
+      <div id="searchResults"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Book Detail Modal -->
+<div class="modal-bg" id="bookModal" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-cover-strip" id="modalCover">
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-author" id="modalAuthor"></div>
+      <div class="modal-stats" id="modalStats"></div>
+      <div class="modal-divider"></div>
+      <div class="modal-desc" id="modalDesc"></div>
+      <div class="modal-tags" id="modalTags"></div>
+      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.5rem;font-weight:700">Главы:</div>
+      <div class="modal-chapters" id="modalChapters"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="modalReadBtn" onclick="startReadingModal()">📖 Читать с начала</button>
+        <button class="btn btn-ghost" id="modalBkmBtn" onclick="toggleBookmarkModal()">🔖 В закладки</button>
+        <button class="btn btn-ghost" id="modalShareBtn" onclick="shareBook()">📤 Поделиться</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reader Overlay -->
+<div id="reader-overlay">
+  <div class="reader-topbar">
+    <button class="reader-btn" onclick="closeReader()">← Назад</button>
+    <div class="reader-title" id="readerTitle">Название книги</div>
+    <div class="reader-controls">
+      <select class="reader-chapter-select" id="readerChapterSelect" onchange="goToChapter(this.value)"></select>
+      <button class="reader-btn" onclick="prevChapter()">‹ Назад</button>
+      <button class="reader-btn" onclick="nextChapter()">Вперёд ›</button>
+      <button class="reader-btn" onclick="toggleReaderSettings()">⚙️</button>
+      <button class="reader-btn" id="readerBkmBtn" onclick="toggleBookmarkReader()">🔖</button>
+    </div>
+    <div class="reader-settings" id="readerSettings">
+      <div class="rs-row">
+        <span class="rs-label">Размер шрифта</span>
+        <div class="rs-btns">
+          <button class="rs-btn" onclick="setFontSize(14)">А–</button>
+          <button class="rs-btn active" onclick="setFontSize(16)">А</button>
+          <button class="rs-btn" onclick="setFontSize(18)">А+</button>
+          <button class="rs-btn" onclick="setFontSize(20)">А++</button>
+        </div>
+      </div>
+      <div class="rs-row">
+        <span class="rs-label">Интервал</span>
+        <div class="rs-btns">
+          <button class="rs-btn" onclick="setLineHeight(1.5)">1.5</button>
+          <button class="rs-btn active" onclick="setLineHeight(1.9)">1.9</button>
+          <button class="rs-btn" onclick="setLineHeight(2.3)">2.3</button>
+        </div>
+      </div>
+      <div class="rs-row">
+        <span class="rs-label">Тема</span>
+      </div>
+      <div class="rs-themes">
+        <div class="rs-theme active" style="background:#0a0814" onclick="setReaderTheme('#0a0814','#ddd8ee',this)"></div>
+        <div class="rs-theme" style="background:#1a1a2e" onclick="setReaderTheme('#1a1a2e','#e8e0f0',this)"></div>
+        <div class="rs-theme" style="background:#f5f0e8" onclick="setReaderTheme('#f5f0e8','#2a1a0a',this)"></div>
+      </div>
+    </div>
+  </div>
+  <div class="reader-body" id="readerBody" onscroll="updateReadProgress()">
+    <div class="reader-content" id="readerContent"></div>
+  </div>
+  <div class="reader-bottombar">
+    <button class="reader-btn" onclick="prevChapter()">‹</button>
+    <div class="reader-progress-wrap">
+      <div class="reader-progress-bar" onclick="seekProgress(event)">
+        <div class="reader-progress-fill" id="readerProgressFill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="reader-page-info" id="readerPageInfo">Глава 1</div>
+    <button class="reader-btn" onclick="nextChapter()">›</button>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- ==================== JAVASCRIPT ==================== -->
+<script>
+// ==========================================
+// DATA
+// ==========================================
+const BOOKS = [
+  {
+    id: 0,
+    emoji: '🌸',
+    title: 'Сакура в снегу',
+    author: 'Автор: Хана Мизуки',
+    genre: 'romance',
+    rating: 4.9,
+    chapters: 32,
+    status: 'завершена',
+    isNew: false,
+    isHot: true,
+    desc: 'История о молодом художнике, чья жизнь переворачивается после встречи с таинственным скрипачом на зимней улице Киото. Годами он жил в тени своего таланта, не веря в себя — пока однажды не услышал музыку, которая заставила его вспомнить, зачем он рисует.',
+    tags: ['романтика', 'искусство', 'Япония', 'медленное горение', 'чистая любовь'],
+    bg: 'linear-gradient(135deg,#2d1b69,#1e3a5f)',
+    readTime: 25,
+    chapterContent: [
+      { title: 'Глава 1. Первый снег', content: `<h3>Глава 1. Первый снег</h3>
+        <p>Снег в Киото всегда падал иначе — тихо, почти извиняясь за своё присутствие. Кэнто это знал. Он прожил здесь двадцать шесть лет, и каждую зиму смотрел на одни и те же улицы, становившиеся другими под белым покрывалом.</p>
+        <p>В тот вечер он задержался у канала дольше обычного. В руках была сумка с красками — красками, которых он не открывал уже три месяца. Три месяца молчания. Три месяца пустых холстов.</p>
+        <div class="scene-break">* * *</div>
+        <p>Музыку он услышал раньше, чем увидел его.</p>
+        <p>Скрипка плакала где-то за углом старого чайного домика — не жалостливо, а как-то... яростно. Будто кто-то спорил со всем миром через инструмент.</p>
+        <p class="speech">— Простите, — сказал незнакомец, чуть не столкнувшись с Кэнто за поворотом. Скрипка в его руке качнулась.</p>
+        <p>Кэнто поднял взгляд. И что-то щёлкнуло внутри — как затвор фотоаппарата. Как застёжка чего-то давно закрытого.</p>
+        <p>Незнакомец был красив не так, как красивы люди на фотографиях. Он был красив как зимнее небо — холодно, без предупреждения, с ощущением высоты.</p>
+        <div class="scene-break">* * *</div>
+        <p>Той ночью Кэнто открыл краски. Это был просто набросок. Просто линии. Но впервые за три месяца рука не дрожала.` },
+      { title: 'Глава 2. Нотный лист', content: `<h3>Глава 2. Нотный лист</h3>
+        <p>Его звали Рэн. Кэнто узнал это случайно — увидел имя на потерянном нотном листке, который нашёл у того же канала на следующее утро.</p>
+        <p>Он мог бы выбросить. Или оставить лежать на мокром камне. Вместо этого он положил листок в карман, прикрывая ладонью от снега.</p>
+        <p>Это была глупость. Он понимал это. Но глупости иногда начинаются именно так — с маленького движения, о котором потом не можешь забыть.</p>
+        <div class="scene-break">* * *</div>
+        <p class="speech">— Вы снова здесь, — сказал голос за спиной.</p>
+        <p>Рэн стоял в нескольких шагах, без шарфа, несмотря на мороз. Он смотрел на Кэнто с тем же выражением, которое бывает у людей, привыкших никому не доверять. Но в котором что-то трещит по швам.</p>
+        <p class="speech">— Нотный лист, — Кэнто протянул бумагу. — Вы потеряли вчера.</p>
+        <p>Молчание. Потом рука — длинные пальцы, мозоли от смычка.</p>
+        <p class="speech">— Спасибо, — тихо. Слишком тихо для такого голоса.</p>
+        <p>Кэнто кивнул. Развернулся, чтобы уйти. И не ушёл. Потому что в следующую секунду Рэн спросил:</p>
+        <p class="speech">— Вы художник?</p>
+        <p>На пальцах Кэнто осталась синяя краска. Он не заметил.</p>` },
+    ]
+  },
+  {
+    id: 1,
+    emoji: '🌙',
+    title: 'Луна между нами',
+    author: 'Автор: Тори Асахи',
+    genre: 'romance',
+    rating: 4.8,
+    chapters: 24,
+    status: 'ongoing',
+    isNew: false,
+    isHot: true,
+    desc: 'Два заклятых соперника в университете скрывают взаимное притяжение за колкими словами. Случайная встреча в ночном баре меняет всё.',
+    tags: ['университет', 'соперники', 'романтика', 'хейт-лав'],
+    bg: 'linear-gradient(135deg,#1a1035,#2d1b69)',
+    readTime: 20,
+    chapterContent: [
+      { title: 'Глава 1. Ненавижу его', content: `<h3>Глава 1. Ненавижу его</h3>
+        <p>Если бы Кай мог выбрать одного человека, которого он терпеть не может — он бы выбрал Иду Харуто. Без колебаний. Без сомнений.</p>
+        <p>Иду Харуто, который всегда сдавал работы первым. Который отвечал на вопросы профессоров раньше, чем те заканчивали говорить. Который улыбался так, будто весь мир — одна большая шутка, а Кай — её главная часть.</p>
+        <div class="scene-break">* * *</div>
+        <p>В баре было слишком громко. Именно поэтому Кай его и выбрал — никто не подойдёт поговорить, когда музыка бьёт в уши.</p>
+        <p>Он уже сделал третий глоток, когда на соседний стул сел кто-то. И не просто кто-то.</p>
+        <p class="speech">— Что за совпадение, — произнёс знакомый голос.</p>
+        <p>Кай медленно повернул голову. Иду смотрел на него с бокалом в руке и с выражением человека, которому тоже последнее место в этом баре нравится.</p>
+        <p class="speech">— Совпадение, — ровно сказал Кай. — Уже ухожу.</p>
+        <p class="speech">— Ты не допил.</p>
+        <p>Пауза. Кай посмотрел на свой бокал. Поставил обратно.</p>
+        <p class="speech">— Заткнись, Харуто.</p>
+        <p>Иду поднял бокал. Чокнулся с его. Спокойно, как будто так и надо.</p>
+        <p class="speech">— За нас обоих, кому здесь больше некуда идти.</p>` },
+    ]
+  },
+  {
+    id: 2,
+    emoji: '⚔️',
+    title: 'Клинок и тень',
+    author: 'Автор: Ю Сираи',
+    genre: 'action',
+    rating: 4.7,
+    chapters: 48,
+    status: 'завершена',
+    isNew: false,
+    isHot: false,
+    desc: 'В мире, где боги ходят среди людей, генерал и его личный убийца вынуждены бежать вместе от гнева небес.',
+    tags: ['фэнтези', 'экшн', 'богатый мир', 'война', 'тайны'],
+    bg: 'linear-gradient(135deg,#1a1a1a,#3d1515)',
+    readTime: 40,
+    chapterContent: [
+      { title: 'Глава 1. Приказ богов', content: `<h3>Глава 1. Приказ богов</h3>
+        <p>Приказ пришёл на рассвете — запечатанный в золотой футляр, доставленный белым вороном. Генерал Со Вэй сломал печать, не меняясь в лице.</p>
+        <p>Приговор. Ему и всем, кто рядом.</p>
+        <p>Он сжёг письмо над свечой. Встал. И первое, что он сделал — пошёл в камеру к заключённому.</p>
+        <div class="scene-break">* * *</div>
+        <p>Убийца сидел на каменном полу, будто медитировал. Его звали Лэй — или так он себя называл. Настоящего имени не знал никто.</p>
+        <p class="speech">— Встань, — сказал Со Вэй.</p>
+        <p>Лэй открыл глаза. Тёмные, как гарь после пожара.</p>
+        <p class="speech">— Казнь перенесли?</p>
+        <p class="speech">— Казнь отменена. У меня другое предложение.</p>
+        <p>Долгая пауза. Цепи звякнули — Лэй встал, медленно, с достоинством человека, которому нечего терять.</p>
+        <p class="speech">— Я слушаю, генерал.</p>
+        <p class="speech">— Нам обоим нужно исчезнуть. Сегодня ночью. Вместе.</p>
+        <p>Лэй смотрел на него долго. Потом усмехнулся — первый раз за три года, что провёл в этой камере.</p>
+        <p class="speech">— Вы спасаете своего убийцу.</p>
+        <p class="speech">— Я беру лучший меч, который у меня есть, — сказал Со Вэй. — Даже если он когда-то был направлен против меня.</p>` },
+    ]
+  },
+  {
+    id: 3,
+    emoji: '☕',
+    title: 'Кофе на двоих',
+    author: 'Автор: Нана Огата',
+    genre: 'slice',
+    rating: 4.6,
+    chapters: 18,
+    status: 'завершена',
+    isNew: false,
+    isHot: false,
+    desc: 'Тихий владелец маленькой кофейни и шумный рекламщик, который приходит каждое утро. История о маленьких радостях и больших чувствах.',
+    tags: ['повседневность', 'уют', 'кофе', 'медленная жизнь'],
+    bg: 'linear-gradient(135deg,#2a1a0a,#3d2b1a)',
+    readTime: 15,
+    chapterContent: [
+      { title: 'Глава 1. Капучино без сахара', content: `<h3>Глава 1. Капучино без сахара</h3>
+        <p>Юто открывал кофейню в семь утра — не потому что так надо, а потому что иначе не умел спать.</p>
+        <p>Он знал всех постоянных клиентов по заказу. Офисная дама — американо, два сахара. Студент с ноутбуком — латте, один. Пожилой профессор — эспрессо, молча, с газетой.</p>
+        <p>Новый появился в понедельник. Влетел в дверь на третьей минуте восьмого — растрёпанный, с портфелем под мышкой, ищущий что-то взглядом.</p>
+        <p class="speech">— Самый большой капучино, который у вас есть. Без сахара. И побыстрее, пожалуйста, я опаздываю.</p>
+        <p>Юто начал делать капучино. Спокойно. Как всегда.</p>
+        <p class="speech">— Вы не торопитесь, — заметил незнакомец.</p>
+        <p class="speech">— Хороший кофе не терпит спешки, — ответил Юто.</p>
+        <p>Тот посмотрел на него. Потом — на часы. Потом снова на него.</p>
+        <p class="speech">— Ладно. Но в следующий раз я приду раньше.</p>
+        <p>Во вторник он пришёл в шесть пятьдесят пять. Юто ещё протирал стойку.</p>
+        <p class="speech">— Раньше, — сказал незнакомец, — означает раньше, не так ли?</p>
+        <p>Юто поставил перед ним чашку. Капучино. Без сахара. Уже готовый.</p>
+        <p class="speech">— Я знал, что вы придёте, — сказал он просто.</p>` },
+    ]
+  },
+  {
+    id: 4,
+    emoji: '🎭',
+    title: 'Маски и сердца',
+    author: 'Автор: Рэй Кимура',
+    genre: 'drama',
+    rating: 4.9,
+    chapters: 36,
+    status: 'завершена',
+    isNew: false,
+    isHot: true,
+    desc: 'Актёр, прячущий боль за улыбкой, и режиссёр, умеющий видеть истину. Мир театра, ревность, предательство и второй шанс.',
+    tags: ['драма', 'театр', 'больно', 'второй шанс', 'психология'],
+    bg: 'linear-gradient(135deg,#1a0a2e,#2d1b5f)',
+    readTime: 30,
+    chapterContent: [
+      { title: 'Глава 1. Финальный поклон', content: `<h3>Глава 1. Финальный поклон</h3>
+        <p>Аплодисменты стихли. Свет вернулся. Сэй снял маску — не театральную, а ту, которую носил поверх неё.</p>
+        <p>За кулисами всегда пахло пылью и старым деревом. Он любил этот запах. Единственное честное, что было в этом месте.</p>
+        <div class="scene-break">* * *</div>
+        <p class="speech">— Сэй, — голос режиссёра всегда звучал так, будто тот уже знает ответ на вопрос, который не задал.</p>
+        <p>Он обернулся. Аки Нагата стоял в дверях — серьёзный, как всегда, с папкой под рукой.</p>
+        <p class="speech">— Сцена в третьем акте. Твой персонаж плакал?</p>
+        <p class="speech">— По тексту — да.</p>
+        <p class="speech">— А ты?</p>
+        <p>Молчание. Сэй улыбнулся — своей фирменной улыбкой, которую всегда принимали за ответ.</p>
+        <p class="speech">— Это работа, Аки-сан. Персонажи плачут. Актёры работают.</p>
+        <p>Аки смотрел на него долго. Без осуждения. Без одобрения. Просто — смотрел.</p>
+        <p class="speech">— Я хочу поставить новую пьесу, — сказал он наконец. — Про человека, который разучился чувствовать. Ты сможешь сыграть того, кто его находит?</p>
+        <p>Сэй опустил взгляд на свои руки.</p>
+        <p class="speech">— Если дашь мне сценарий — попробую.</p>
+        <p class="speech">— Сценария нет. Мы напишем его вместе.</p>` },
+    ]
+  },
+  {
+    id: 5,
+    emoji: '🌊',
+    title: 'Волны зовут домой',
+    author: 'Автор: Суй Мори',
+    genre: 'romance',
+    rating: 4.5,
+    chapters: 22,
+    status: 'ongoing',
+    isNew: false,
+    isHot: false,
+    desc: 'Рыбак из маленького посёлка и городской архитектор, приехавший на лето. Морской воздух, старые тайны и медленная любовь.',
+    tags: ['море', 'лето', 'тихая романтика', 'деревня', 'тайны прошлого'],
+    bg: 'linear-gradient(135deg,#0a1a2e,#1b3a5f)',
+    readTime: 18,
+    chapterContent: [
+      { title: 'Глава 1. Приезжий', content: `<h3>Глава 1. Приезжий</h3>
+        <p>Машина сломалась в трёх километрах от посёлка. Миято вышел, посмотрел на дымящийся капот и понял, что лето начинается именно так, как он и боялся.</p>
+        <p>Он шёл пешком, с чемоданом на колёсах, по дороге вдоль моря. Море было серым — не мрачным, а каким-то живым, дышащим.</p>
+        <p>Первым жителем посёлка, которого он встретил, оказался мужчина с рыболовной сетью на плече.</p>
+        <div class="scene-break">* * *</div>
+        <p class="speech">— Заблудились?</p>
+        <p class="speech">— Нет. Сломался. То есть машина, — Миято поправил очки. — Я ищу дом Накадзимы. Я снял его на лето.</p>
+        <p>Мужчина некоторое время смотрел на него. У него было лицо человека, который давно перестал ждать чего-то нового, а потому всему новому немного удивляется.</p>
+        <p class="speech">— Хару, — сказал он наконец.</p>
+        <p class="speech">— Что?</p>
+        <p class="speech">— Меня зовут Хару. Дом Накадзимы — я покажу. Это рядом.</p>
+        <p>Он не предложил помочь с чемоданом. Просто пошёл вперёд, и Миято пошёл следом — мимо лодок, мимо деревянных заборов, мимо запаха водорослей и смолы.</p>
+        <p>Лето, решил Миято, может оказаться странным.</p>` },
+    ]
+  },
+  {
+    id: 6,
+    emoji: '🔮',
+    title: 'За семью печатями',
+    author: 'Автор: Кадзу Ицуки',
+    genre: 'fantasy',
+    rating: 4.8,
+    chapters: 60,
+    status: 'ongoing',
+    isNew: false,
+    isHot: true,
+    desc: 'Древний демон, запечатанный в теле студента-отличника. Маг-экзорцист, который должен его уничтожить — но не может.',
+    tags: ['паранормальное', 'фэнтези', 'медленное горение', 'демоны', 'магия'],
+    bg: 'linear-gradient(135deg,#0f1a2e,#2a1069)',
+    readTime: 50,
+    chapterContent: [
+      { title: 'Глава 1. Запечатанный', content: `<h3>Глава 1. Запечатанный</h3>
+        <p>Когда Тэцу проснулся тем утром, он ещё не знал, что внутри него живёт что-то очень, очень древнее.</p>
+        <p>Он почистил зубы. Сделал кофе. Открыл учебник по статистике. Полностью обычное утро.</p>
+        <p>Аномалия произошла ровно в девять — когда в его окно влетел человек. Буквально.</p>
+        <div class="scene-break">* * *</div>
+        <p>Человек встал с пола, отряхнул стекло с плаща. Молодой, примерно его возраста, с татуировками до шеи и взглядом, которым обычно смотрят на опасных существ.</p>
+        <p class="speech">— Ты — контейнер? — спросил он вместо приветствия.</p>
+        <p class="speech">— Я — студент третьего курса, — ответил Тэцу. — Который теперь должен менять окно.</p>
+        <p>Незнакомец достал какой-то инструмент — не сразу понять, прибор или оружие. Навёл на Тэцу. Прибор зазвенел.</p>
+        <p class="speech">— Точно контейнер, — пробормотал он. — Уровень... семь? Это невозможно.</p>
+        <p class="speech">— Что невозможно?</p>
+        <p class="speech">— То, что ты ещё жив, — незнакомец убрал прибор. Посмотрел на Тэцу с выражением человека, у которого план только что рассыпался. — Меня зовут Рин. Я пришёл тебя убить.</p>
+        <p class="speech">— Понял, — Тэцу сел обратно. — Хочешь кофе?</p>` },
+    ]
+  },
+  {
+    id: 7,
+    emoji: '🌸',
+    title: 'Весенний ветер',
+    author: 'Автор: Харуки Симо',
+    genre: 'romance',
+    rating: 4.3,
+    chapters: 10,
+    status: 'ongoing',
+    isNew: true,
+    isHot: false,
+    desc: 'Начинающий мангака и его вдохновение — молчаливый сосед с крыши. История только начинается.',
+    tags: ['романтика', 'манга', 'новинка', 'соседи'],
+    bg: 'linear-gradient(135deg,#2a1035,#451550)',
+    readTime: 8,
+    chapterContent: [
+      { title: 'Глава 1. Крыша', content: `<h3>Глава 1. Крыша</h3>
+        <p>Рюто поднялся на крышу в полночь — с блокнотом и ощущением полного творческого тупика. Дедлайн через две недели. Страниц — ноль.</p>
+        <p>На крыше уже кто-то был.</p>
+        <p>Парень сидел на краю — не опасно, просто ноги свисали вниз, голова запрокинута к звёздам. Белые наушники. Тихая фигура.</p>
+        <p>Рюто хотел уйти. Но блокнот уже открылся сам собой.</p>
+        <div class="scene-break">* * *</div>
+        <p>Он рисовал сорок минут, пока незнакомец не снял наушники.</p>
+        <p class="speech">— Ты меня рисуешь, — сказал тот. Не вопрос — просто наблюдение.</p>
+        <p class="speech">— Извини, — Рюто закрыл блокнот.</p>
+        <p class="speech">— Не надо извиняться, — незнакомец обернулся. У него было спокойное лицо человека, привыкшего ни о чём не беспокоиться. — Можно посмотреть?</p>
+        <p>Рюто протянул блокнот. Руки слегка дрожали.</p>
+        <p>Незнакомец смотрел долго. Потом поднял взгляд.</p>
+        <p class="speech">— Я Со. Живу в 304-й. Ты меня можешь рисовать когда угодно.</p>` },
+    ]
+  },
+  {
+    id: 8,
+    emoji: '🏮',
+    title: 'Красный фонарь',
+    author: 'Автор: Эн Тадзима',
+    genre: 'drama',
+    rating: 4.6,
+    chapters: 14,
+    status: 'ongoing',
+    isNew: true,
+    isHot: false,
+    desc: 'Эпоха Эдо. Торговец шёлком и странствующий самурай — судьба сводит их снова и снова.',
+    tags: ['история', 'эпоха Эдо', 'самурай', 'судьба', 'прошлое'],
+    bg: 'linear-gradient(135deg,#2a0a0a,#4a1515)',
+    readTime: 12,
+    chapterContent: [
+      { title: 'Глава 1. Осенний торговый путь', content: `<h3>Глава 1. Осенний торговый путь</h3>
+        <p>Осень в период Эдо пахла хризантемами и пылью дорог. Каичи это знал — он прошёл эти дороги десять раз, водя обозы с шёлком из Осаки в Эдо.</p>
+        <p>Самурая он встретил на перевале — того окружали трое разбойников, и ни один из них ещё не понял, что уже проиграл.</p>
+        <div class="scene-break">* * *</div>
+        <p>Три движения. Клинок вернулся в ножны. Трое лежали на земле — живые, только в синяках.</p>
+        <p>Самурай посмотрел на Каичи с полным безразличием.</p>
+        <p class="speech">— Вы торговец?</p>
+        <p class="speech">— Да. Вы нас только что спасли.</p>
+        <p class="speech">— Я шёл в ту же сторону. Это не спасение.</p>
+        <p>Каичи рассмотрел его. Молодой. Без клана — нет знака на одежде. Ронин. Но держится как человек, знающий себе цену.</p>
+        <p class="speech">— Как вас зовут, господин самурай?</p>
+        <p class="speech">— Куро.</p>
+        <p class="speech">— Просто Куро?</p>
+        <p class="speech">— Просто Куро. Остального достаточно.</p>
+        <p>Каичи кивнул. И почему-то не усомнился ни в чём из сказанного.</p>` },
+    ]
+  },
+  {
+    id: 9,
+    emoji: '🎵',
+    title: 'Ноты для двоих',
+    author: 'Автор: Миу Судзуки',
+    genre: 'slice',
+    rating: 4.4,
+    chapters: 16,
+    status: 'завершена',
+    isNew: true,
+    isHot: false,
+    desc: 'Два пианиста-конкурента в консерватории. Один — вундеркинд из семьи музыкантов, другой — самородок с улицы.',
+    tags: ['музыка', 'конкуренция', 'романтика', 'консерватория'],
+    bg: 'linear-gradient(135deg,#0a1a1a,#0f3535)',
+    readTime: 14,
+    chapterContent: [
+      { title: 'Глава 1. Первый экзамен', content: `<h3>Глава 1. Первый экзамен</h3>
+        <p>Фортепиано в экзаменационном зале всегда было одно. Это означало, что кто-то приходил последним и ждал, пока другие закончат. Хиро всегда приходил первым.</p>
+        <p>В тот день кто-то занял его место.</p>
+        <div class="scene-break">* * *</div>
+        <p>Незнакомец играл не по правилам — то есть он играл совершенно правильно, технически безукоризненно, но как-то... не так. Слишком свободно. Слишком громко для экзамена. Слишком живо.</p>
+        <p>Хиро встал в дверях и слушал до конца.</p>
+        <p class="speech">— Ты закончил? — спросил он, когда последняя нота стихла.</p>
+        <p>Незнакомец обернулся. Светлые глаза, удивлённые и немного дерзкие.</p>
+        <p class="speech">— А ты ждал?</p>
+        <p class="speech">— Это моё время. По расписанию.</p>
+        <p class="speech">— Прости. Я Рэй. Первый курс.</p>
+        <p class="speech">— Хиро. Третий. Как ты сюда попал — не через систему?</p>
+        <p>Рэй пожал плечами. Встал, давая место за инструментом.</p>
+        <p class="speech">— Через окно, — сказал он просто. И совершенно серьёзно.</p>` },
+    ]
+  },
+  {
+    id: 10,
+    emoji: '🌿',
+    title: 'Зелёный остров',
+    author: 'Автор: Ао Фудзи',
+    genre: 'slice',
+    rating: 4.5,
+    chapters: 20,
+    status: 'завершена',
+    isNew: true,
+    isHot: false,
+    desc: 'Ботаник и владелец цветочного магазина. Тишина, запах земли, случайные встречи и медленное тепло.',
+    tags: ['ботаника', 'цветы', 'тихая любовь', 'спокойствие'],
+    bg: 'linear-gradient(135deg,#0a1a0a,#1a3a1a)',
+    readTime: 16,
+    chapterContent: [
+      { title: 'Глава 1. Незнакомый цветок', content: `<h3>Глава 1. Незнакомый цветок</h3>
+        <p>Сора принёс в магазин горшок с растением, которого раньше не видел. Нашёл на улице — кто-то оставил у мусорного бака. Корни живые, листья помятые.</p>
+        <p>Он поставил его на прилавок и начал выяснять, что это такое.</p>
+        <div class="scene-break">* * *</div>
+        <p>Посетитель вошёл через час — высокий, в очках, с рюкзаком явно научного вида. Огляделся и сразу же уставился на горшок.</p>
+        <p class="speech">— Откуда у вас <em>monstera obliqua</em>? — спросил он вместо приветствия.</p>
+        <p class="speech">— С улицы, — честно ответил Сора. — Нашёл.</p>
+        <p class="speech">— Это редкий вид, — незнакомец снял очки, надел другие — с лупой. — Вы понимаете, что это редкий вид?</p>
+        <p class="speech">— Теперь понимаю, — Сора облокотился на прилавок. — Вы ботаник?</p>
+        <p class="speech">— Аспирант. Кафедра тропической ботаники.</p>
+        <p class="speech">— Хотите, оставлю для вас? Она точно не моя.</p>
+        <p>Аспирант поднял взгляд от растения. Смотрел долго, будто только сейчас заметил, что в магазине есть ещё один человек.</p>
+        <p class="speech">— Нао, — сказал он. — Меня зовут Нао. И... да. Пожалуйста.</p>` },
+    ]
+  },
+  {
+    id: 11,
+    emoji: '🎪',
+    title: 'Цирк без огней',
+    author: 'Автор: Юка Сиро',
+    genre: 'drama',
+    rating: 4.7,
+    chapters: 28,
+    status: 'ongoing',
+    isNew: true,
+    isHot: false,
+    desc: 'Акробат с травмой и психолог, который боится высоты. Мир цирка, страхи и путь к себе.',
+    tags: ['цирк', 'психология', 'преодоление', 'drama', 'страхи'],
+    bg: 'linear-gradient(135deg,#1a0a1a,#3a1535)',
+    readTime: 22,
+    chapterContent: [
+      { title: 'Глава 1. Падение', content: `<h3>Глава 1. Падение</h3>
+        <p>Акробаты не боятся высоты — они научаются её не замечать. Это не то же самое.</p>
+        <p>Дзин упал в последний раз восемь месяцев назад. С трапеции. Страховка сработала. Ничего не сломалось. Ничего, кроме чего-то внутри.</p>
+        <div class="scene-break">* * *</div>
+        <p>Психолог цирка появился в понедельник — молодой, явно нервный, явно первый раз в таком месте.</p>
+        <p class="speech">— Здравствуйте, — сказал он под куполом. Голос слегка сел. — Я Ёши. Я буду работать с труппой.</p>
+        <p>Дзин смотрел на него сверху — с платформы, до которой тот точно не поднимется.</p>
+        <p class="speech">— Психолог, — произнёс он. — Зачем цирку психолог?</p>
+        <p class="speech">— Чтобы помочь тем, кому нужна помощь, — просто ответил Ёши. И смотрел прямо — не вниз, как обычно смотрят люди, которым страшно.</p>
+        <p>Дзин спустился. Медленно. Впервые за месяц.</p>
+        <p class="speech">— Я не нуждаюсь в помощи, — сказал он.</p>
+        <p class="speech">— Хорошо, — кивнул Ёши. — Я просто буду рядом.</p>` },
+    ]
+  },
+];
+
+// ==========================================
+// STATE
+// ==========================================
+let state = {
+  bookmarks: [],
+  history: [],
+  readProgress: {},
+  settings: {
+    username: '',
+    autosave: true,
+    petals: true,
+    fontSize: 16,
+    lineHeight: 1.9,
+    readerBg: '#0a0814',
+    readerText: '#ddd8ee',
+  },
+  stats: {
+    chaptersRead: 0,
+    minutesRead: 0,
+  },
+  currentPage: 'home',
+  currentBook: null,
+  currentChapter: 0,
+  filterGenre: 'all',
+  sortMode: 'rating',
+  readingTimer: null,
+};
+
+// ==========================================
+// STORAGE
+// ==========================================
+function saveState() {
+  try {
+    localStorage.setItem('sakura_state', JSON.stringify({
+      bookmarks: state.bookmarks,
+      history: state.history,
+      readProgress: state.readProgress,
+      settings: state.settings,
+      stats: state.stats,
+    }));
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('sakura_state');
+    if (saved) {
+      const data = JSON.parse(saved);
+      Object.assign(state.bookmarks, data.bookmarks || []);
+      state.bookmarks = data.bookmarks || [];
+      state.history = data.history || [];
+      state.readProgress = data.readProgress || {};
+      if (data.settings) Object.assign(state.settings, data.settings);
+      if (data.stats) Object.assign(state.stats, data.stats);
+    }
+  } catch(e) {}
+}
+
+// ==========================================
+// TOAST
+// ==========================================
+function showToast(msg, icon = '✅') {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span>${icon}</span> ${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ==========================================
+// PETALS
+// ==========================================
+function initPetals() {
+  const bg = document.getElementById('petalBg');
+  bg.innerHTML = '';
+  if (!state.settings.petals) return;
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal-el';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = Math.random() * 100 + '%';
+    p.style.animationDuration = (8 + Math.random() * 12) + 's';
+    p.style.animationDelay = (Math.random() * 10) + 's';
+    const size = 5 + Math.random() * 7;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    bg.appendChild(p);
+  }
+}
+
+// ==========================================
+// NAVIGATION
+// ==========================================
+function navigate(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  state.currentPage = page;
+
+  if (el) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  if (page === 'bookmarks') renderBookmarks();
+  if (page === 'history') renderHistory();
+  if (page === 'settings') renderSettings();
+  if (page === 'home') renderHome();
+  if (page === 'catalog') renderCatalog();
+}
+
+function filterGenre(genre, el) {
+  state.filterGenre = genre;
+  navigate('catalog', el);
+  // update catalog tabs
+  document.querySelectorAll('#catalogTabs .tab').forEach(t => t.classList.remove('active'));
+  const genreMap = {romance:'Романтика',drama:'Драма',fantasy:'Фэнтези',action:'Экшн',slice:'Повседневность',all:'Все'};
+  document.querySelectorAll('#catalogTabs .tab').forEach(t => {
+    if (t.textContent.trim() === (genreMap[genre] || 'Все')) t.classList.add('active');
+  });
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ==========================================
+// BOOK CARDS
+// ==========================================
+function getBadge(book) {
+  if (book.isNew) return '<span class="cover-badge badge-new">Новинка</span>';
+  if (book.isHot) return '<span class="cover-badge badge-hot">🔥 Хит</span>';
+  if (book.status === 'завершена') return '<span class="cover-badge badge-done">Завершена</span>';
+  return '<span class="cover-badge badge-ongoing">Продолжается</span>';
+}
+
+function getProgress(bookId) {
+  const prog = state.readProgress[bookId];
+  if (!prog) return null;
+  const book = BOOKS.find(b => b.id === bookId);
+  return Math.round((prog.chapter / book.chapters) * 100);
+}
+
+function makeBookCard(book) {
+  const saved = state.bookmarks.includes(book.id);
+  const prog = getProgress(book.id);
+  return `<div class="book-card" onclick="openBookDetail(${book.id})">
+    <div class="book-cover" style="background:${book.bg}">
+      ${book.emoji}
+      ${getBadge(book)}
+      <span class="cover-rating">★ ${book.rating}</span>
+      <button class="cover-bookmark ${saved ? 'saved' : ''}" onclick="event.stopPropagation();toggleBookmark(${book.id})" title="${saved ? 'Убрать из закладок' : 'В закладки'}">${saved ? '🔖' : '☆'}</button>
+    </div>
+    <div class="book-info">
+      <div class="book-title">${book.title}</div>
+      <div class="book-author" style="font-size:0.68rem;color:var(--text3);margin-bottom:0.3rem">${book.author}</div>
+      <div class="book-meta">
+        <span class="genre-pill">${book.chapters} гл.</span>
+        <span style="font-size:0.65rem">${book.readTime} мин/гл</span>
+      </div>
+      ${prog !== null ? `<div class="read-progress">
+        <div class="progress-label"><span>Прочитано</span><span>${prog}%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
+      </div>` : ''}
+    </div>
+  </div>`;
+}
+
+// ==========================================
+// HOME
+// ==========================================
+function renderHome() {
+  const popular = [...BOOKS].filter(b => b.isHot || b.rating >= 4.7).slice(0, 6);
+  const newBooks = BOOKS.filter(b => b.isNew);
+
+  document.getElementById('popularGrid').innerHTML = popular.map(makeBookCard).join('');
+  document.getElementById('newGrid').innerHTML = newBooks.map(makeBookCard).join('');
+
+  // Continue reading
+  const inProgress = BOOKS.filter(b => state.readProgress[b.id]);
+  const cs = document.getElementById('continueSection');
+  if (inProgress.length === 0) {
+    cs.innerHTML = `<div class="empty-state" style="padding:2rem">
+      <div class="es-icon">📭</div><h3>Пока ничего</h3><p>Начните читать любую книгу</p></div>`;
+  } else {
+    cs.innerHTML = `<div class="bookmarks-grid">` + inProgress.map(b => {
+      const prog = state.readProgress[b.id];
+      const pct = Math.round((prog.chapter / b.chapters) * 100);
+      return `<div class="bookmark-card" onclick="openBook(${b.id})">
+        <div class="bookmark-cover" style="background:${b.bg}">${b.emoji}</div>
+        <div class="bookmark-info">
+          <div class="bookmark-title">${b.title}</div>
+          <div class="bookmark-meta">Глава ${prog.chapter} из ${b.chapters}</div>
+          <div class="read-progress">
+            <div class="progress-label"><span>Прогресс</span><span>${pct}%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          </div>
+        </div>
+        <button class="reader-btn" onclick="event.stopPropagation();openBook(${b.id})" style="align-self:center">▶</button>
+      </div>`;
+    }).join('') + `</div>`;
+  }
+
+  updateStats();
+}
+
+// ==========================================
+// CATALOG
+// ==========================================
+function renderCatalog() {
+  let books = [...BOOKS];
+  if (state.filterGenre !== 'all') {
+    books = books.filter(b => b.genre === state.filterGenre);
+  }
+  books = sortBookList(books, state.sortMode);
+  document.getElementById('catalogGrid').innerHTML = books.length
+    ? books.map(makeBookCard).join('')
+    : `<div class="empty-state" style="grid-column:1/-1;padding:3rem">
+        <div class="es-icon">🔍</div><h3>Ничего не найдено</h3><p>Попробуйте другую категорию</p></div>`;
+}
+
+function filterCatalog(genre, el) {
+  state.filterGenre = genre;
+  document.querySelectorAll('#catalogTabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderCatalog();
+}
+
+function sortBooks(mode) {
+  state.sortMode = mode;
+  renderCatalog();
+}
+
+function sortBookList(books, mode) {
+  switch(mode) {
+    case 'rating': return books.sort((a,b) => b.rating - a.rating);
+    case 'chapters': return books.sort((a,b) => b.chapters - a.chapters);
+    case 'title': return books.sort((a,b) => a.title.localeCompare(b.title, 'ru'));
+    case 'new': return books.sort((a,b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+    default: return books;
+  }
+}
+
+// ==========================================
+// BOOK DETAIL MODAL
+// ==========================================
+let currentModalBook = null;
+
+function openBookDetail(bookId) {
+  const book = BOOKS.find(b => b.id === bookId);
+  if (!book) return;
+  currentModalBook = book;
+
+  const cover = document.getElementById('modalCover');
+  cover.style.background = book.bg;
+  cover.innerHTML = `<span style="font-size:4rem">${book.emoji}</span>
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>`;
+
+  document.getElementById('modalTitle').textContent = book.title;
+  document.getElementById('modalAuthor').textContent = book.author;
+  document.getElementById('modalStats').innerHTML = `
+    <div class="modal-stat">★ <strong>${book.rating}</strong></div>
+    <div class="modal-stat">📖 <strong>${book.chapters}</strong> глав</div>
+    <div class="modal-stat">⏱ <strong>${book.readTime} мин</strong>/гл</div>
+    <div class="modal-stat">${book.status === 'завершена' ? '✅' : '🔄'} ${book.status}</div>`;
+  document.getElementById('modalDesc').textContent = book.desc;
+  document.getElementById('modalTags').innerHTML = book.tags.map(t =>
+    `<span class="modal-tag">${t}</span>`).join('');
+
+  // Chapters list
+  const chapDiv = document.getElementById('modalChapters');
+  chapDiv.innerHTML = book.chapterContent.map((ch, i) => {
+    const isRead = state.readProgress[book.id] && state.readProgress[book.id].chapter > i;
+    return `<div class="chapter-item ${isRead ? 'read' : ''}" onclick="openBookAtChapter(${book.id},${i})">
+      <span>${ch.title}</span>
+      <span style="font-size:0.68rem;color:var(--text3)">${book.readTime} мин</span>
+    </div>`;
+  }).join('') + (book.chapters > book.chapterContent.length ?
+    `<div class="chapter-item" style="color:var(--text3);cursor:default">... ещё ${book.chapters - book.chapterContent.length} глав</div>` : '');
+
+  // Bookmark button
+  const saved = state.bookmarks.includes(book.id);
+  document.getElementById('modalBkmBtn').textContent = saved ? '🔖 В закладках' : '🔖 В закладки';
+
+  // Continue reading button
+  const prog = state.readProgress[book.id];
+  document.getElementById('modalReadBtn').textContent = prog
+    ? `📖 Продолжить (гл. ${prog.chapter + 1})`
+    : '📖 Читать с начала';
+
+  document.getElementById('bookModal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target.id === 'bookModal') closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('bookModal').classList.remove('open');
+}
+
+function startReadingModal() {
+  closeModalDirect();
+  if (currentModalBook) {
+    const prog = state.readProgress[currentModalBook.id];
+    openBookAtChapter(currentModalBook.id, prog ? prog.chapter : 0);
+  }
+}
+
+function toggleBookmarkModal() {
+  if (!currentModalBook) return;
+  toggleBookmark(currentModalBook.id);
+  const saved = state.bookmarks.includes(currentModalBook.id);
+  document.getElementById('modalBkmBtn').textContent = saved ? '🔖 В закладках' : '🔖 В закладки';
+}
+
+function shareBook() {
+  if (!currentModalBook) return;
+  const text = `Читаю "${currentModalBook.title}" в Сакура Библиотеке! ★${currentModalBook.rating}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('Ссылка скопирована!', '📤'));
+  } else {
+    showToast('Поделиться: ' + text, '📤');
+  }
+}
+
+// ==========================================
+// READER
+// ==========================================
+function openBook(bookId) {
+  const book = BOOKS.find(b => b.id === bookId);
+  if (!book) return;
+  const prog = state.readProgress[bookId];
+  openBookAtChapter(bookId, prog ? prog.chapter : 0);
+}
+
+function openBookAtChapter(bookId, chapterIdx) {
+  closeModalDirect();
+  const book = BOOKS.find(b => b.id === bookId);
+  if (!book) return;
+
+  state.currentBook = book;
+  state.currentChapter = chapterIdx;
+
+  document.getElementById('readerTitle').textContent = book.title;
+  document.getElementById('reader-overlay').classList.add('open');
+
+  // Build chapter select
+  const sel = document.getElementById('readerChapterSelect');
+  sel.innerHTML = book.chapterContent.map((ch, i) =>
+    `<option value="${i}" ${i === chapterIdx ? 'selected' : ''}>${ch.title}</option>`).join('');
+
+  renderChapter();
+  addToHistory(book, chapterIdx);
+  updateBookmarkReaderBtn();
+  startReadTimer();
+}
+
+function renderChapter() {
+  const book = state.currentBook;
+  const ch = book.chapterContent[state.currentChapter];
+  if (!ch) {
+    document.getElementById('readerContent').innerHTML = `<div style="text-align:center;padding:4rem;color:var(--text3)">
+      <div style="font-size:3rem;margin-bottom:1rem">📝</div>
+      <p>Эта глава ещё не написана</p>
+      <p style="margin-top:0.5rem;font-size:0.8rem">Следите за обновлениями!</p>
+    </div>`;
+  } else {
+    document.getElementById('readerContent').innerHTML = ch.content;
+  }
+
+  const body = document.getElementById('readerBody');
+  body.scrollTop = 0;
+
+  document.getElementById('readerPageInfo').textContent =
+    `Глава ${state.currentChapter + 1} из ${book.chapters}`;
+
+  document.getElementById('readerChapterSelect').value = state.currentChapter;
+
+  updateReadProgress();
+  saveProgress();
+  applyReaderStyle();
+}
+
+function nextChapter() {
+  const book = state.currentBook;
+  if (state.currentChapter < book.chapterContent.length - 1) {
+    state.currentChapter++;
+    renderChapter();
+    state.stats.chaptersRead++;
+    updateStats();
+    saveState();
+  } else {
+    showToast('Вы достигли последней доступной главы!', '🎉');
+  }
+}
+
+function prevChapter() {
+  if (state.currentChapter > 0) {
+    state.currentChapter--;
+    renderChapter();
+  }
+}
+
+function goToChapter(idx) {
+  state.currentChapter = parseInt(idx);
+  renderChapter();
+}
+
+function closeReader() {
+  document.getElementById('reader-overlay').classList.remove('open');
+  stopReadTimer();
+  renderHome();
+}
+
+function updateReadProgress() {
+  const body = document.getElementById('readerBody');
+  const total = body.scrollHeight - body.clientHeight;
+  const pct = total > 0 ? (body.scrollTop / total) * 100 : 0;
+  document.getElementById('readerProgressFill').style.width = Math.min(100, pct) + '%';
+}
+
+function seekProgress(e) {
+  const bar = e.currentTarget;
+  const pct = e.offsetX / bar.offsetWidth;
+  const body = document.getElementById('readerBody');
+  body.scrollTop = pct * (body.scrollHeight - body.clientHeight);
+}
+
+function saveProgress() {
+  if (!state.settings.autosave || !state.currentBook) return;
+  state.readProgress[state.currentBook.id] = { chapter: state.currentChapter };
+  saveState();
+}
+
+function startReadTimer() {
+  state.readingTimer = setInterval(() => {
+    state.stats.minutesRead++;
+    saveState();
+  }, 60000);
+}
+
+function stopReadTimer() {
+  if (state.readingTimer) {
+    clearInterval(state.readingTimer);
+    state.readingTimer = null;
+  }
+}
+
+function applyReaderStyle() {
+  const content = document.getElementById('readerContent');
+  const overlay = document.getElementById('reader-overlay');
+  content.style.setProperty('--reader-font-size', state.settings.fontSize + 'px');
+  content.style.setProperty('--reader-line-height', state.settings.lineHeight);
+  content.style.fontSize = state.settings.fontSize + 'px';
+  content.style.lineHeight = state.settings.lineHeight;
+  overlay.style.background = state.settings.readerBg;
+  content.style.color = state.settings.readerText;
+}
+
+function toggleReaderSettings() {
+  document.getElementById('readerSettings').classList.toggle('open');
+}
+
+function updateBookmarkReaderBtn() {
+  if (!state.currentBook) return;
+  const saved = state.bookmarks.includes(state.currentBook.id);
+  document.getElementById('readerBkmBtn').textContent = saved ? '🔖' : '☆ Закладка';
+}
+
+function toggleBookmarkReader() {
+  if (!state.currentBook) return;
+  toggleBookmark(state.currentBook.id);
+  updateBookmarkReaderBtn();
+}
+
+// ==========================================
+// READER SETTINGS
+// ==========================================
+function setFontSize(size) {
+  state.settings.fontSize = size;
+  document.querySelectorAll('.rs-btn').forEach(b => {
+    if (b.onclick && b.onclick.toString().includes('setFontSize')) b.classList.remove('active');
+  });
+  applyReaderStyle();
+  saveState();
+}
+
+function setLineHeight(h) {
+  state.settings.lineHeight = h;
+  applyReaderStyle();
+  saveState();
+}
+
+function setReaderTheme(bg, text, el) {
+  state.settings.readerBg = bg;
+  state.settings.readerText = text;
+  document.querySelectorAll('.rs-theme').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  applyReaderStyle();
+  saveState();
+}
+
+// ==========================================
+// BOOKMARKS
+// ==========================================
+function toggleBookmark(bookId) {
+  const idx = state.bookmarks.indexOf(bookId);
+  if (idx === -1) {
+    state.bookmarks.push(bookId);
+    showToast('Добавлено в закладки', '🔖');
+  } else {
+    state.bookmarks.splice(idx, 1);
+    showToast('Удалено из закладок', '✕');
+  }
+  document.getElementById('bookmarkCount').textContent = state.bookmarks.length;
+  document.getElementById('statBookmarks').textContent = state.bookmarks.length;
+  saveState();
+  updateStats();
+}
+
+function renderBookmarks() {
+  const grid = document.getElementById('bookmarksGrid');
+  if (state.bookmarks.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="es-icon">🔖</div><h3>Закладки пусты</h3><p>Нажмите ☆ на книге чтобы добавить</p></div>`;
+    return;
+  }
+  grid.innerHTML = state.bookmarks.map(id => {
+    const book = BOOKS.find(b => b.id === id);
+    if (!book) return '';
+    const prog = getProgress(id);
+    return `<div class="bookmark-card" onclick="openBookDetail(${id})">
+      <div class="bookmark-cover" style="background:${book.bg}">${book.emoji}</div>
+      <div class="bookmark-info">
+        <div class="bookmark-title">${book.title}</div>
+        <div class="bookmark-meta">${book.author} · ★${book.rating} · ${book.chapters} гл.</div>
+        ${prog !== null ? `<div class="read-progress">
+          <div class="progress-label"><span>Прочитано</span><span>${prog}%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
+        </div>` : '<div style="font-size:0.7rem;color:var(--text3);margin-top:0.3rem">Не начато</div>'}
+      </div>
+      <button class="bookmark-remove" onclick="event.stopPropagation();toggleBookmark(${id})" title="Удалить">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function clearBookmarks() {
+  if (state.bookmarks.length === 0) return;
+  state.bookmarks = [];
+  document.getElementById('bookmarkCount').textContent = '0';
+  renderBookmarks();
+  saveState();
+  updateStats();
+  showToast('Закладки очищены', '🗑️');
+}
+
+// ==========================================
+// HISTORY
+// ==========================================
+function addToHistory(book, chapter) {
+  const entry = {
+    bookId: book.id,
+    title: book.title,
+    emoji: book.emoji,
+    chapter: chapter + 1,
+    totalChapters: book.chapters,
+    time: new Date().toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'}),
+    date: new Date().toLocaleDateString('ru'),
+  };
+  state.history.unshift(entry);
+  if (state.history.length > 50) state.history.pop();
+  saveState();
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (state.history.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="es-icon">📭</div><h3>История пуста</h3><p>Начните читать книги</p></div>`;
+    return;
+  }
+  list.innerHTML = state.history.map((entry, i) =>
+    `<div class="history-item" onclick="openBook(${entry.bookId})">
+      <div class="history-emoji">${entry.emoji}</div>
+      <div class="history-text">
+        <div class="history-title">${entry.title}</div>
+        <div class="history-sub">Глава ${entry.chapter} из ${entry.totalChapters}</div>
+      </div>
+      <div class="history-time">${entry.date}<br>${entry.time}</div>
+    </div>`).join('');
+}
+
+function clearHistory() {
+  state.history = [];
+  renderHistory();
+  saveState();
+  showToast('История очищена', '🗑️');
+}
+
+// ==========================================
+// SETTINGS
+// ==========================================
+function renderSettings() {
+  document.getElementById('settingUsername').value = state.settings.username;
+  document.getElementById('settingStatRead').textContent = state.stats.chaptersRead;
+  document.getElementById('settingStatBk').textContent = state.bookmarks.length;
+  document.getElementById('settingStatHist').textContent = state.history.length;
+
+  const at = document.getElementById('toggleAutosave');
+  at.classList.toggle('on', state.settings.autosave);
+  const pt = document.getElementById('togglePetals');
+  pt.classList.toggle('on', state.settings.petals);
+}
+
+function updateUsername(name) {
+  state.settings.username = name;
+  document.getElementById('userName').textContent = name || 'Анонимный читатель';
+  document.getElementById('userAvatar').textContent = name ? name.slice(0,2).toUpperCase() : 'АЧ';
+  saveState();
+  showToast('Имя сохранено', '👤');
+}
+
+function toggleSetting(key) {
+  state.settings[key] = !state.settings[key];
+  const el = document.getElementById('toggle' + key.charAt(0).toUpperCase() + key.slice(1));
+  if (el) el.classList.toggle('on', state.settings[key]);
+  if (key === 'petals') initPetals();
+  saveState();
+}
+
+function resetAll() {
+  if (!confirm('Сбросить все данные? Это удалит закладки, историю и прогресс чтения.')) return;
+  state.bookmarks = [];
+  state.history = [];
+  state.readProgress = {};
+  state.stats = { chaptersRead: 0, minutesRead: 0 };
+  saveState();
+  renderSettings();
+  updateStats();
+  showToast('Все данные сброшены', '🔄');
+}
+
+// ==========================================
+// STATS
+// ==========================================
+function updateStats() {
+  document.getElementById('statRead').textContent = state.stats.chaptersRead;
+  document.getElementById('statBookmarks').textContent = state.bookmarks.length;
+  document.getElementById('bookmarkCount').textContent = state.bookmarks.length;
+  const hours = Math.round(state.stats.minutesRead / 60);
+  document.getElementById('statTime').textContent = hours + 'ч';
+}
+
+// ==========================================
+// SEARCH
+// ==========================================
+let searchTimeout = null;
+
+function handleSearch(query) {
+  clearTimeout(searchTimeout);
+  if (!query.trim()) return;
+  searchTimeout = setTimeout(() => {
+    if (query.length >= 2) doSearchWith(query);
+  }, 400);
+}
+
+function doSearch() {
+  const query = document.getElementById('searchInput').value.trim();
+  if (query) doSearchWith(query);
+}
+
+function doSearchWith(query) {
+  const q = query.toLowerCase();
+  const results = BOOKS.filter(b =>
+    b.title.toLowerCase().includes(q) ||
+    b.author.toLowerCase().includes(q) ||
+    b.tags.some(t => t.toLowerCase().includes(q)) ||
+    b.desc.toLowerCase().includes(q) ||
+    b.genre.toLowerCase().includes(q)
+  );
+
+  document.getElementById('searchQuery').textContent = query;
+  document.getElementById('searchResults').innerHTML = results.length
+    ? results.map(b => `<div class="search-result-item" onclick="openBookDetail(${b.id})">
+        <div class="search-result-emoji">${b.emoji}</div>
+        <div class="search-result-info">
+          <div class="search-result-title">${b.title}</div>
+          <div class="search-result-meta">${b.author} · ★${b.rating} · ${b.chapters} гл. · ${b.genre}</div>
+        </div>
+        <span style="font-size:0.75rem;color:var(--text3)">${b.status}</span>
+      </div>`).join('')
+    : `<div class="empty-state"><div class="es-icon">🔍</div><h3>Ничего не найдено</h3><p>Попробуйте другой запрос</p></div>`;
+
+  navigate('search', null);
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+}
+
+// ==========================================
+// RANDOM BOOK
+// ==========================================
+function openRandomBook() {
+  const book = BOOKS[Math.floor(Math.random() * BOOKS.length)];
+  showToast('Случайная книга: ' + book.title, '🎲');
+  openBookDetail(book.id);
+}
+
+// ==========================================
+// OPEN BOOK FROM BUTTONS
+// ==========================================
+function openBookAtChapter(bookId, chapterIdx) {
+  closeModalDirect();
+  const book = BOOKS.find(b => b.id === bookId);
+  if (!book) return;
+
+  state.currentBook = book;
+  state.currentChapter = chapterIdx;
+
+  document.getElementById('readerTitle').textContent = book.title;
+  document.getElementById('reader-overlay').classList.add('open');
+
+  const sel = document.getElementById('readerChapterSelect');
+  sel.innerHTML = book.chapterContent.map((ch, i) =>
+    `<option value="${i}" ${i === chapterIdx ? 'selected' : ''}>${ch.title}</option>`).join('');
+
+  renderChapter();
+  addToHistory(book, chapterIdx);
+  updateBookmarkReaderBtn();
+  startReadTimer();
+}
+
+// ==========================================
+// INIT
+// ==========================================
+loadState();
+initPetals();
+renderHome();
+renderCatalog();
+updateStats();
+
+document.getElementById('bookmarkCount').textContent = state.bookmarks.length;
+if (state.settings.username) {
+  document.getElementById('userName').textContent = state.settings.username;
+  document.getElementById('userAvatar').textContent = state.settings.username.slice(0,2).toUpperCase();
+}
+
+// Close reader settings when clicking elsewhere
+document.addEventListener('click', (e) => {
+  const rs = document.getElementById('readerSettings');
+  if (rs.classList.contains('open') && !rs.contains(e.target) && !e.target.textContent.includes('⚙️')) {
+    rs.classList.remove('open');
+  }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  const readerOpen = document.getElementById('reader-overlay').classList.contains('open');
+  if (readerOpen) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextChapter();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevChapter();
+    if (e.key === 'Escape') closeReader();
+  }
+  if (e.key === 'Escape') closeModalDirect();
+});
+</script>
+</body>
+</html>
